@@ -57,39 +57,42 @@ func (m *Mail) InsertInto(tx *sql.Tx) error {
 }
 
 func (m *Mail) UpdateThreadid(tx *sql.Tx) error {
-  threadid, err := m.hasParent(tx)
+  parentThread, err := m.hasParent(tx)
   if err != nil {
     return errors.Wrap(err, "while checking parent")
   }
-  if threadid != 0 {
-    // we find a parent with threadid
-    m.Threadid = threadid
-    _, err = tx.Exec("UPDATE mail SET threadid = ? WHERE inreplyto = ?", threadid, m.MessageId)
+  if parentThread != 0 {
+    // we find a parent with parentThread
+    m.Threadid = parentThread
+		// XXX need to update all children recursively down to last child
+    _, err = tx.Exec("UPDATE mail SET threadid = ? WHERE inreplyto = ?", parentThread, m.MessageId)
     if err != nil {
       return errors.Wrap(err, "while updating children threadid")
     }
-  } else {
-    threadid, err = m.hasChild(tx)
-    if err != nil {
-      return errors.Wrap(err, "while checking child")
-    }
-    if threadid != 0 {
-      // we find child with threadid
-      m.Threadid = threadid
-      _, err = tx.Exec("UPDATE mail SET threadid = ? WHERE inreplyto = ?", threadid, m.MessageId)
-      if err != nil {
-        return errors.Wrap(err, "while updating children threadid")
-      }
-    } else {
-      row := tx.QueryRow("UPDATE counter SET value = value + 1 WHERE name = 'threadid' RETURNING value")
-      var id int
-      err = row.Scan(&id)
-      if err != nil {
-        return errors.Wrap(err, "while updating `threadid` counter")
-      }
-      m.Threadid = id
-    }
   }
+	childThreadid, err := m.hasChild(tx)
+	if err != nil {
+		return errors.Wrap(err, "while checking child")
+	}
+	if childThreadid != 0 {
+		// we find child with childThreadid
+		m.Threadid = childThreadid
+		// XXX need to update all children recursively down to last child
+		_, err = tx.Exec("UPDATE mail SET threadid = ? WHERE inreplyto = ?", childThreadid, m.MessageId)
+		if err != nil {
+			return errors.Wrap(err, "while updating children threadid")
+		}
+	}
+
+	if m.Threadid == 0 {
+		row := tx.QueryRow("UPDATE counter SET value = value + 1 WHERE name = 'threadid' RETURNING value")
+		var id int
+		err = row.Scan(&id)
+		if err != nil {
+			return errors.Wrap(err, "while updating `threadid` counter")
+		}
+		m.Threadid = id
+	}
 
   return nil
 }

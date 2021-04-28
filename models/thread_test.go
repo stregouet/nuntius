@@ -216,3 +216,91 @@ func TestThreadidAttributionOrder1(t *testing.T) {
 		t.Errorf("unexpected database content %v", mails)
 	}
 }
+
+func TestThreadidAttributionOrder2(t *testing.T) {
+	db, err := setupdb(t)
+	if err != nil {
+		t.Fatalf("cannot setup database %v", err)
+	}
+	tx, err := db.Begin()
+	if err != nil {
+		t.Fatalf("cannot begin transaction %v", err)
+	}
+	insertMail := func(m *Mail) *Mail {
+		err = m.UpdateThreadid(tx)
+		if err != nil {
+			t.Fatal(err)
+		}
+		err = m.InsertInto(tx)
+		if err != nil {
+			t.Fatal(err)
+		}
+		return m
+	}
+	insertMail(&Mail{MessageId: "id1", InReplyTo: ""})
+	insertMail(&Mail{MessageId: "id2", InReplyTo: "id9"})
+	insertMail(&Mail{MessageId: "id3", InReplyTo: "id11"})
+	insertMail(&Mail{MessageId: "id4", InReplyTo: "id3"})
+	insertMail(&Mail{MessageId: "id5", InReplyTo: "id4"})
+	insertMail(&Mail{MessageId: "id6", InReplyTo: "id5"})
+	insertMail(&Mail{MessageId: "id7", InReplyTo: "id6"})
+	insertMail(&Mail{MessageId: "id8", InReplyTo: "id1"})
+	insertMail(&Mail{MessageId: "id9", InReplyTo: "id8"})
+	insertMail(&Mail{MessageId: "id10", InReplyTo: "id9"})
+	insertMail(&Mail{MessageId: "id11", InReplyTo: "id10"})
+	insertMail(&Mail{MessageId: "id12", InReplyTo: "id7"})
+
+	mails, err := fetch(tx)
+	if err != nil {
+		t.Fatalf("error fetching mails %v", err)
+	}
+	expected := map[int]map[string]interface{}{
+		1: map[string]interface{}{
+			"threadid": 1,
+			"messageid": "id1",
+		},
+		2: map[string]interface{}{
+			"threadid": 1,
+			"messageid": "id2",
+		},
+		3: map[string]interface{}{
+			"threadid": 3,
+			"messageid": "id3",
+		},
+		4: map[string]interface{}{
+			"threadid": 3,
+			"messageid": "id4",
+		},
+		5: map[string]interface{}{
+			"threadid": 3,
+			"messageid": "id5",
+		},
+		6: map[string]interface{}{
+			"threadid": 3,
+			"messageid": "id6",
+		},
+		7: map[string]interface{}{
+			"threadid": 3,
+			"messageid": "id7",
+		},
+		8: map[string]interface{}{
+			"threadid": 1,
+			"messageid": "id8",
+		},
+		9: map[string]interface{}{
+			"threadid": 1,
+			"messageid": "id9",
+		},
+		10: map[string]interface{}{
+			"threadid": 1,
+			"messageid": "id10",
+		},
+		11: map[string]interface{}{
+			"threadid": 1,
+			"messageid": "id11",
+		},
+	}
+	if !reflect.DeepEqual(expected, mails) {
+		t.Errorf("unexpected database content %v", mails)
+	}
+}
