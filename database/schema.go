@@ -6,6 +6,7 @@ import (
 	"encoding/hex"
 	"fmt"
 	"io"
+	"sort"
 
 	"github.com/pkg/errors"
 )
@@ -92,15 +93,23 @@ func Migrate(tx *sql.Tx) error {
 		doneVersion[version] = struct{}{}
 	}
 
-	for version, migration := range migrations {
+	versions := make([]string, 0, len(migrations))
+	for version, _ := range migrations {
+		versions = append(versions, version)
+	}
+
+	sort.Strings(versions)
+
+	for _, version := range versions {
 		if _, ok := doneVersion[version]; ok {
 			// version already applied
 			continue
 		}
+		migration := migrations[version]
 		for _, statement := range migration.Statements {
 			_, err = tx.Exec(statement)
 			if err != nil {
-				return err
+				return errors.Wrapf(err, "while executing migration %s", version)
 			}
 		}
 		if err = migration.insertInto(tx); err != nil {
