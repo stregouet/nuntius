@@ -6,7 +6,7 @@ import (
 
 func init() {
 	database.Register(&database.Migration{
-		Version:     "20212604",
+		Version:     "20210426",
 		Description: "initial schema",
 		Statements: []string{
 			`CREATE TABLE mail (
