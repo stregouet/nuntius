@@ -1,6 +1,8 @@
 package widgets
 
 import (
+	"log"
+
 	"github.com/gdamore/tcell/v2"
 	"github.com/gdamore/tcell/v2/views"
 )
@@ -14,11 +16,17 @@ type ListWidget struct {
 	selected int
 	OnSelect func(IRune)
 	view     views.View
+	logger   *log.Logger
 	views.WidgetWatchers
 }
 
-func NewList() ListWidget {
-	return ListWidget{lines: make([]IRune, 0), OnSelect: func(IRune){}, selected: 1}
+func NewList(l *log.Logger) ListWidget {
+	return ListWidget{
+		lines:    make([]IRune, 0),
+		OnSelect: func(IRune) {},
+		selected: 1,
+		logger:   l,
+	}
 }
 
 func (l *ListWidget) AddLine(line IRune) {
@@ -65,8 +73,7 @@ func (l *ListWidget) Draw() {
 	}
 
 }
-func (l *ListWidget) Resize() {
-}
+func (l *ListWidget) Resize() {}
 func (l *ListWidget) Size() (int, int) {
 	w, h := 0, 0
 	for _, line := range l.lines {
@@ -78,7 +85,6 @@ func (l *ListWidget) Size() (int, int) {
 	}
 	return w, h
 }
-
 
 func (l *ListWidget) HandleEvent(ev tcell.Event) bool {
 	switch ev := ev.(type) {
@@ -99,5 +105,5 @@ func (l *ListWidget) HandleEvent(ev tcell.Event) bool {
 }
 
 func (l *ListWidget) onSelect() {
-	l.OnSelect(l.lines[l.selected - 1])
+	l.OnSelect(l.lines[l.selected-1])
 }

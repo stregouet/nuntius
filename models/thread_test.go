@@ -264,23 +264,23 @@ func TestThreadidAttributionOrder2(t *testing.T) {
 			"messageid": "id2",
 		},
 		3: map[string]interface{}{
-			"threadid": 3,
+			"threadid": 1,
 			"messageid": "id3",
 		},
 		4: map[string]interface{}{
-			"threadid": 3,
+			"threadid": 1,
 			"messageid": "id4",
 		},
 		5: map[string]interface{}{
-			"threadid": 3,
+			"threadid": 1,
 			"messageid": "id5",
 		},
 		6: map[string]interface{}{
-			"threadid": 3,
+			"threadid": 1,
 			"messageid": "id6",
 		},
 		7: map[string]interface{}{
-			"threadid": 3,
+			"threadid": 1,
 			"messageid": "id7",
 		},
 		8: map[string]interface{}{
@@ -298,6 +298,10 @@ func TestThreadidAttributionOrder2(t *testing.T) {
 		11: map[string]interface{}{
 			"threadid": 1,
 			"messageid": "id11",
+		},
+		12: map[string]interface{}{
+			"threadid": 1,
+			"messageid": "id12",
 		},
 	}
 	if !reflect.DeepEqual(expected, mails) {
