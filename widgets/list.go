@@ -15,9 +15,9 @@ type ListWidget struct {
 	lines    []IRune
 	selected int
 	OnSelect func(IRune)
-	view     views.View
+	view     *views.ViewPort
 	logger   *log.Logger
-	views.WidgetWatchers
+	BaseWidget
 }
 
 func NewList(l *log.Logger) ListWidget {
@@ -33,9 +33,6 @@ func (l *ListWidget) AddLine(line IRune) {
 	l.lines = append(l.lines, line)
 }
 
-func (l *ListWidget) SetView(view views.View) {
-	l.view = view
-}
 
 func max(a, b int) int {
 	if a > b {
@@ -73,35 +70,30 @@ func (l *ListWidget) Draw() {
 	}
 
 }
-func (l *ListWidget) Resize() {}
-func (l *ListWidget) Size() (int, int) {
-	w, h := 0, 0
-	for _, line := range l.lines {
-		lw := len(line.ToRune())
-		if lw > w {
-			w = lw
-		}
-		h += 1
-	}
-	return w, h
+
+func (l *ListWidget) HandleUiEvent(ev AppEvent) {}
+func (l *ListWidget) SetViewPort(view *views.ViewPort) {
+	l.view = view
 }
 
-func (l *ListWidget) HandleEvent(ev tcell.Event) bool {
+
+func (l *ListWidget) HandleEvent(ev tcell.Event) {
 	switch ev := ev.(type) {
 	case *tcell.EventKey:
 		switch ev.Key() {
 		case tcell.KeyUp, tcell.KeyCtrlP:
 			l.selected = max(l.selected-1, 1)
-			return true
+			l.EmitUiEvent(REDRAW_EVENT)
+			return
 		case tcell.KeyDown, tcell.KeyCtrlN:
 			l.selected = min(l.selected+1, len(l.lines))
-			return true
+			l.EmitUiEvent(REDRAW_EVENT)
+			return
 		case tcell.KeyEnter:
 			l.onSelect()
-			return true
+			return
 		}
 	}
-	return false
 }
 
 func (l *ListWidget) onSelect() {

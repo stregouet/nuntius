@@ -4,7 +4,6 @@ import (
 	"log"
 
 	"github.com/gdamore/tcell/v2"
-	"github.com/gdamore/tcell/v2/views"
 )
 
 const ARROW = '➤'
@@ -23,8 +22,6 @@ type TreeWidget struct {
 	selected   int
 	indentSize int
 	OnSelect   func(ITreeLine)
-	view       views.View
-	views.WidgetWatchers
 	logger *log.Logger
 	ListWidget
 }
@@ -39,9 +36,6 @@ func NewTree(l *log.Logger) TreeWidget {
 	}
 }
 
-func (t *TreeWidget) SetView(view views.View) {
-	t.view = view
-}
 
 func (t *TreeWidget) AddLine(line ITreeLine) {
 	t.lines = append(t.lines, line)
@@ -69,7 +63,6 @@ func samelevelInNextlines(nextlines []ITreeLine, level int) bool {
 func (t *TreeWidget) Draw() {
 	v := t.view
 	w, h := v.Size()
-	t.logger.Printf("draw treewidget %d, %d", w, h)
 	for y, line := range t.lines {
 		linenum := y + 1
 		if linenum > h {
@@ -121,33 +114,22 @@ func (t *TreeWidget) Draw() {
 	}
 }
 
-func (t *TreeWidget) Size() (int, int) {
-	w, h := 0, 0
-	for _, line := range t.lines {
-		lw := len(line.ToRune()) + line.Depth() * t.indentSize
-		if lw > w {
-			w = lw
-		}
-		h += 1
-	}
-	return 10, 10
-	// return w, h
-}
 
-func (t *TreeWidget) HandleEvent(ev tcell.Event) bool {
+func (t *TreeWidget) HandleEvent(ev tcell.Event) {
 	switch ev := ev.(type) {
 	case *tcell.EventKey:
 		switch ev.Key() {
 		case tcell.KeyUp, tcell.KeyCtrlP:
 			t.selected = max(t.selected-1, 1)
-			return true
+			t.EmitUiEvent(REDRAW_EVENT)
+			return
 		case tcell.KeyDown, tcell.KeyCtrlN:
 			t.selected = min(t.selected+1, len(t.lines))
-			return true
+			t.EmitUiEvent(REDRAW_EVENT)
+			return
 		case tcell.KeyEnter:
 			t.onSelect()
-			return true
+			return
 		}
 	}
-	return false
 }
