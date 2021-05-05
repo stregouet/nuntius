@@ -33,7 +33,6 @@ func (l *ListWidget) AddLine(line IRune) {
 	l.lines = append(l.lines, line)
 }
 
-
 func max(a, b int) int {
 	if a > b {
 		return a
@@ -75,7 +74,6 @@ func (l *ListWidget) HandleUiEvent(ev AppEvent) {}
 func (l *ListWidget) SetViewPort(view *views.ViewPort) {
 	l.view = view
 }
-
 
 func (l *ListWidget) HandleEvent(ev tcell.Event) {
 	switch ev := ev.(type) {

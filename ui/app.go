@@ -23,8 +23,8 @@ type Application struct {
 func NewApp(l *log.Logger) Application {
 	app := Application{
 		uiEvents: make(chan widgets.AppEvent, 10),
-		logger:    l,
-		tcEvents:  make(chan tcell.Event, 10),
+		logger:   l,
+		tcEvents: make(chan tcell.Event, 10),
 	}
 	app.exit.Store(false)
 	return app
@@ -81,7 +81,6 @@ func (app *Application) tick() bool {
 	}
 	return more
 }
-
 
 func (app *Application) Run() {
 	if err := app.initialize(); err != nil {

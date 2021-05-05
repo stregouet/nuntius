@@ -16,7 +16,6 @@ type Window struct {
 	app     *Application
 }
 
-
 func NewWindow(app *Application, l *log.Logger) *Window {
 	return &Window{app: app, logger: l}
 }
@@ -29,7 +28,7 @@ func (w *Window) SetContent(widget widgets.Widget) {
 		w.content.SetViewPort(vport)
 	}
 }
-func (w *Window) SetParent(_ widgets.Widget)            {}
+func (w *Window) SetParent(_ widgets.Widget)    {}
 func (w *Window) SetViewPort(v *views.ViewPort) {}
 func (w *Window) EmitUiEvent(ev widgets.AppEvent) {
 	// XXX check if parent is nil?

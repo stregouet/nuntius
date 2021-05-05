@@ -22,7 +22,7 @@ type TreeWidget struct {
 	selected   int
 	indentSize int
 	OnSelect   func(ITreeLine)
-	logger *log.Logger
+	logger     *log.Logger
 	ListWidget
 }
 
@@ -32,10 +32,9 @@ func NewTree(l *log.Logger) TreeWidget {
 		lines:      make([]ITreeLine, 0),
 		OnSelect:   func(ITreeLine) {},
 		selected:   1,
-		logger: l,
+		logger:     l,
 	}
 }
-
 
 func (t *TreeWidget) AddLine(line ITreeLine) {
 	t.lines = append(t.lines, line)
@@ -113,7 +112,6 @@ func (t *TreeWidget) Draw() {
 		}
 	}
 }
-
 
 func (t *TreeWidget) HandleEvent(ev tcell.Event) {
 	switch ev := ev.(type) {

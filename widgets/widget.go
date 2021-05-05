@@ -17,19 +17,18 @@ type Widget interface {
 }
 
 type BaseWidget struct {
-    parent Widget
+	parent Widget
 }
 
 func (b *BaseWidget) SetParent(w Widget) {
-    b.parent = w
+	b.parent = w
 }
 func (b *BaseWidget) Resize() {
 }
 func (b *BaseWidget) Size() (int, int) {
-    return 0, 0
+	return 0, 0
 }
 func (b *BaseWidget) EmitUiEvent(ev AppEvent) {
 	// XXX check if parent is nil?
 	b.parent.HandleUiEvent(ev)
 }
-

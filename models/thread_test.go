@@ -48,7 +48,6 @@ func setupdb(t *testing.T) (*sql.DB, error) {
 	return db, nil
 }
 
-
 func createMail(messagedid, inreplyto string) *Mail {
 	return &Mail{
 		MessageId: messagedid,
@@ -120,19 +119,19 @@ func TestThreadidAttribution(t *testing.T) {
 	}
 	expected := map[int]map[string]interface{}{
 		1: map[string]interface{}{
-			"threadid": 1,
+			"threadid":  1,
 			"messageid": "id5",
 		},
 		2: map[string]interface{}{
-			"threadid": 1,
+			"threadid":  1,
 			"messageid": "id6",
 		},
 		3: map[string]interface{}{
-			"threadid": 1,
+			"threadid":  1,
 			"messageid": "id4",
 		},
 		4: map[string]interface{}{
-			"threadid": 1,
+			"threadid":  1,
 			"messageid": "id1",
 		},
 	}
@@ -161,7 +160,7 @@ func TestThreadidAttributionOrder1(t *testing.T) {
 		}
 		return m
 	}
-	
+
 	insertMail(&Mail{MessageId: "id5", InReplyTo: "id4"})
 	insertMail(&Mail{MessageId: "id6", InReplyTo: "id4"})
 	insertMail(&Mail{MessageId: "id1", InReplyTo: ""})
@@ -172,15 +171,15 @@ func TestThreadidAttributionOrder1(t *testing.T) {
 	}
 	expected := map[int]map[string]interface{}{
 		1: map[string]interface{}{
-			"threadid": 1,
+			"threadid":  1,
 			"messageid": "id5",
 		},
 		2: map[string]interface{}{
-			"threadid": 2,
+			"threadid":  2,
 			"messageid": "id6",
 		},
 		3: map[string]interface{}{
-			"threadid": 3,
+			"threadid":  3,
 			"messageid": "id1",
 		},
 	}
@@ -196,19 +195,19 @@ func TestThreadidAttributionOrder1(t *testing.T) {
 	// we expect to choose threadid from parent of id4 (i.e. threadid of id1)
 	expected = map[int]map[string]interface{}{
 		1: map[string]interface{}{
-			"threadid": 3,
+			"threadid":  3,
 			"messageid": "id5",
 		},
 		2: map[string]interface{}{
-			"threadid": 3,
+			"threadid":  3,
 			"messageid": "id6",
 		},
 		3: map[string]interface{}{
-			"threadid": 3,
+			"threadid":  3,
 			"messageid": "id1",
 		},
 		4: map[string]interface{}{
-			"threadid": 3,
+			"threadid":  3,
 			"messageid": "id4",
 		},
 	}
@@ -256,51 +255,51 @@ func TestThreadidAttributionOrder2(t *testing.T) {
 	}
 	expected := map[int]map[string]interface{}{
 		1: map[string]interface{}{
-			"threadid": 1,
+			"threadid":  1,
 			"messageid": "id1",
 		},
 		2: map[string]interface{}{
-			"threadid": 1,
+			"threadid":  1,
 			"messageid": "id2",
 		},
 		3: map[string]interface{}{
-			"threadid": 1,
+			"threadid":  1,
 			"messageid": "id3",
 		},
 		4: map[string]interface{}{
-			"threadid": 1,
+			"threadid":  1,
 			"messageid": "id4",
 		},
 		5: map[string]interface{}{
-			"threadid": 1,
+			"threadid":  1,
 			"messageid": "id5",
 		},
 		6: map[string]interface{}{
-			"threadid": 1,
+			"threadid":  1,
 			"messageid": "id6",
 		},
 		7: map[string]interface{}{
-			"threadid": 1,
+			"threadid":  1,
 			"messageid": "id7",
 		},
 		8: map[string]interface{}{
-			"threadid": 1,
+			"threadid":  1,
 			"messageid": "id8",
 		},
 		9: map[string]interface{}{
-			"threadid": 1,
+			"threadid":  1,
 			"messageid": "id9",
 		},
 		10: map[string]interface{}{
-			"threadid": 1,
+			"threadid":  1,
 			"messageid": "id10",
 		},
 		11: map[string]interface{}{
-			"threadid": 1,
+			"threadid":  1,
 			"messageid": "id11",
 		},
 		12: map[string]interface{}{
-			"threadid": 1,
+			"threadid":  1,
 			"messageid": "id12",
 		},
 	}
