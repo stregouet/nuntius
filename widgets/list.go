@@ -1,8 +1,6 @@
 package widgets
 
 import (
-	"log"
-
 	"github.com/gdamore/tcell/v2"
 	"github.com/gdamore/tcell/v2/views"
 )
@@ -16,16 +14,14 @@ type ListWidget struct {
 	selected int
 	OnSelect func(IRune)
 	view     *views.ViewPort
-	logger   *log.Logger
 	BaseWidget
 }
 
-func NewList(l *log.Logger) ListWidget {
-	return ListWidget{
+func NewList() *ListWidget {
+	return &ListWidget{
 		lines:    make([]IRune, 0),
 		OnSelect: func(IRune) {},
 		selected: 1,
-		logger:   l,
 	}
 }
 
@@ -67,10 +63,9 @@ func (l *ListWidget) Draw() {
 			v.SetContent(x, y, r, nil, style)
 		}
 	}
-
+	l.ResetRedraw()
 }
 
-func (l *ListWidget) HandleUiEvent(ev AppEvent) {}
 func (l *ListWidget) SetViewPort(view *views.ViewPort) {
 	l.view = view
 }
@@ -81,11 +76,11 @@ func (l *ListWidget) HandleEvent(ev tcell.Event) {
 		switch ev.Key() {
 		case tcell.KeyUp, tcell.KeyCtrlP:
 			l.selected = max(l.selected-1, 1)
-			l.EmitUiEvent(REDRAW_EVENT)
+			l.AskRedraw()
 			return
 		case tcell.KeyDown, tcell.KeyCtrlN:
 			l.selected = min(l.selected+1, len(l.lines))
-			l.EmitUiEvent(REDRAW_EVENT)
+			l.AskRedraw()
 			return
 		case tcell.KeyEnter:
 			l.onSelect()

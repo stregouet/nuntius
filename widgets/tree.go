@@ -119,11 +119,11 @@ func (t *TreeWidget) HandleEvent(ev tcell.Event) {
 		switch ev.Key() {
 		case tcell.KeyUp, tcell.KeyCtrlP:
 			t.selected = max(t.selected-1, 1)
-			t.EmitUiEvent(REDRAW_EVENT)
+			t.AskRedraw()
 			return
 		case tcell.KeyDown, tcell.KeyCtrlN:
 			t.selected = min(t.selected+1, len(t.lines))
-			t.EmitUiEvent(REDRAW_EVENT)
+			t.AskRedraw()
 			return
 		case tcell.KeyEnter:
 			t.onSelect()

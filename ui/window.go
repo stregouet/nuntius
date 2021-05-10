@@ -1,8 +1,6 @@
 package ui
 
 import (
-	"log"
-
 	"github.com/gdamore/tcell/v2"
 	"github.com/gdamore/tcell/v2/views"
 
@@ -10,36 +8,38 @@ import (
 )
 
 type Window struct {
-	logger  *log.Logger
-	screen  tcell.Screen
-	content widgets.Widget
-	app     *Application
+	screen tcell.Screen
+
+	selectedTab int
+	tabs        []widgets.Widget
+	ex          *widgets.Text
 }
 
-func NewWindow(app *Application, l *log.Logger) *Window {
-	return &Window{app: app, logger: l}
-}
-
-func (w *Window) SetContent(widget widgets.Widget) {
-	w.content = widget
-	widget.SetParent(w)
-	if w.screen != nil {
-		vport := views.NewViewPort(w.screen, 0, 0, -1, -1)
-		w.content.SetViewPort(vport)
+func NewWindow() *Window {
+	t := &widgets.Text{}
+	t.SetContent("ici c'est pour les commandes")
+	w := &Window{
+		tabs: make([]widgets.Widget, 0),
+		ex:   t,
 	}
+	m := NewMailboxesView([]string{"inbox", "junk"})
+	w.AddTab(m)
+	return w
 }
-func (w *Window) SetParent(_ widgets.Widget)    {}
-func (w *Window) SetViewPort(v *views.ViewPort) {}
-func (w *Window) EmitUiEvent(ev widgets.AppEvent) {
-	// XXX check if parent is nil?
-	w.app.HandleUiEvent(ev)
+
+func (w *Window) tabViewPort() *views.ViewPort {
+	_, h := w.screen.Size()
+	return views.NewViewPort(w.screen, 0, 0, -1, h-1)
 }
-func (w *Window) HandleUiEvent(ev widgets.AppEvent) {
-	switch ev {
-	case widgets.REDRAW_EVENT:
-		w.Redraw()
-	default:
-		w.EmitUiEvent(ev)
+func (w *Window) exViewPort() *views.ViewPort {
+	_, h := w.screen.Size()
+	return views.NewViewPort(w.screen, 0, h-1, -1, -1)
+}
+
+func (w *Window) AddTab(widget widgets.Widget) {
+	w.tabs = append(w.tabs, widget)
+	if w.screen != nil {
+		widget.SetViewPort(w.tabViewPort())
 	}
 }
 
@@ -48,29 +48,27 @@ func (w *Window) Redraw() {
 	w.screen.Show()
 }
 
-func (w *Window) Resize()          {}
 func (w *Window) Size() (int, int) { return w.screen.Size() }
 func (w *Window) SetScreen(s tcell.Screen) {
 	w.screen = s
-	vport := views.NewViewPort(s, 0, 0, -1, -1)
-	w.content.SetViewPort(vport)
+	w.ex.SetViewPort(w.exViewPort())
+	for _, t := range w.tabs {
+		t.SetViewPort(w.tabViewPort())
+	}
 }
 func (w *Window) Draw() {
-	w.screen.Clear()
-	w.content.Draw()
+	w.tabs[w.selectedTab].Draw()
+	w.ex.Draw()
 }
-
-func (w *Window) HandleEvent(ev tcell.Event) {
-	switch ev := ev.(type) {
-	case *tcell.EventKey:
-		switch ev.Key() {
-		case tcell.KeyRune:
-			switch ev.Rune() {
-			case 'Q', 'q':
-				w.EmitUiEvent(widgets.QUIT_EVENT)
-				return
-			}
-		}
+func (w *Window) TabHandleEvent(ev tcell.Event) {
+	w.tabs[w.selectedTab].HandleEvent(ev)
+	if w.tabs[w.selectedTab].ShouldRedraw() {
+		w.Redraw()
 	}
-	w.content.HandleEvent(ev)
+}
+func (w *Window) ExHandleEvent(ev tcell.Event) {
+	w.ex.HandleEvent(ev)
+	if w.ex.ShouldRedraw() {
+		w.Redraw()
+	}
 }

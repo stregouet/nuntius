@@ -6,29 +6,34 @@ import (
 )
 
 type Widget interface {
-	Draw()
-	Resize()
 	HandleEvent(ev tcell.Event)
-	HandleUiEvent(ev AppEvent)
-	EmitUiEvent(ev AppEvent)
+	Draw()
 	SetViewPort(view *views.ViewPort)
-	SetParent(w Widget)
+
+	ShouldRedraw() bool
+	AskRedraw()
+	ResetRedraw()
+
+	Resize()
 	Size() (int, int)
 }
 
 type BaseWidget struct {
-	parent Widget
+	triggerRedraw bool
 }
 
-func (b *BaseWidget) SetParent(w Widget) {
-	b.parent = w
+
+func (b *BaseWidget) ShouldRedraw() bool {
+	return b.triggerRedraw
+}
+func (b* BaseWidget) AskRedraw() {
+	b.triggerRedraw = true
+}
+func (b* BaseWidget) ResetRedraw() {
+	b.triggerRedraw = false
 }
 func (b *BaseWidget) Resize() {
 }
 func (b *BaseWidget) Size() (int, int) {
 	return 0, 0
-}
-func (b *BaseWidget) EmitUiEvent(ev AppEvent) {
-	// XXX check if parent is nil?
-	b.parent.HandleUiEvent(ev)
 }
