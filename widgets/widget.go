@@ -10,27 +10,25 @@ type Widget interface {
 	Draw()
 	SetViewPort(view *views.ViewPort)
 
-	ShouldRedraw() bool
 	AskRedraw()
-	ResetRedraw()
+	AskingRedraw(func())
 
 	Resize()
 	Size() (int, int)
 }
 
 type BaseWidget struct {
-	triggerRedraw bool
+	redrawCb func()
 }
 
 
-func (b *BaseWidget) ShouldRedraw() bool {
-	return b.triggerRedraw
+func (b *BaseWidget) AskingRedraw(f func()) {
+	b.redrawCb = f
 }
 func (b* BaseWidget) AskRedraw() {
-	b.triggerRedraw = true
-}
-func (b* BaseWidget) ResetRedraw() {
-	b.triggerRedraw = false
+	if b.redrawCb != nil {
+		b.redrawCb()
+	}
 }
 func (b *BaseWidget) Resize() {
 }

@@ -63,7 +63,6 @@ func (l *ListWidget) Draw() {
 			v.SetContent(x, y, r, nil, style)
 		}
 	}
-	l.ResetRedraw()
 }
 
 func (l *ListWidget) SetViewPort(view *views.ViewPort) {

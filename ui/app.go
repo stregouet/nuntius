@@ -115,6 +115,9 @@ func (app *Application) tick() bool {
 		}
 		app.window.TabHandleEvent(tev)
 	default:
+		if app.window.ShouldRedraw() {
+			app.window.Redraw()
+		}
 	}
 	return more
 }

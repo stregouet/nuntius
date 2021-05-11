@@ -1,6 +1,8 @@
 package ui
 
 import (
+	"sync/atomic"
+
 	"github.com/gdamore/tcell/v2"
 	"github.com/gdamore/tcell/v2/views"
 
@@ -13,6 +15,8 @@ type Window struct {
 	selectedTab int
 	tabs        []widgets.Widget
 	ex          *widgets.Text
+
+	triggerRedraw atomic.Value // bool
 }
 
 func NewWindow() *Window {
@@ -22,6 +26,7 @@ func NewWindow() *Window {
 		tabs: make([]widgets.Widget, 0),
 		ex:   t,
 	}
+	w.ResetRedraw()
 	m := NewMailboxesView([]string{"inbox", "junk"})
 	w.AddTab(m)
 	return w
@@ -38,12 +43,25 @@ func (w *Window) exViewPort() *views.ViewPort {
 
 func (w *Window) AddTab(widget widgets.Widget) {
 	w.tabs = append(w.tabs, widget)
+	widget.AskingRedraw(func() {
+		w.AskRedraw()
+	})
 	if w.screen != nil {
 		widget.SetViewPort(w.tabViewPort())
 	}
 }
 
+func (w *Window) ShouldRedraw() bool {
+	return w.triggerRedraw.Load().(bool)
+}
+func (w *Window) AskRedraw() {
+	w.triggerRedraw.Store(true)
+}
+func (w *Window) ResetRedraw() {
+	w.triggerRedraw.Store(false)
+}
 func (w *Window) Redraw() {
+	w.ResetRedraw()
 	w.Draw()
 	w.screen.Show()
 }
@@ -62,13 +80,7 @@ func (w *Window) Draw() {
 }
 func (w *Window) TabHandleEvent(ev tcell.Event) {
 	w.tabs[w.selectedTab].HandleEvent(ev)
-	if w.tabs[w.selectedTab].ShouldRedraw() {
-		w.Redraw()
-	}
 }
 func (w *Window) ExHandleEvent(ev tcell.Event) {
 	w.ex.HandleEvent(ev)
-	if w.ex.ShouldRedraw() {
-		w.Redraw()
-	}
 }
