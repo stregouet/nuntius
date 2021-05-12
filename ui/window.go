@@ -1,6 +1,7 @@
 package ui
 
 import (
+	"fmt"
 	"sync/atomic"
 
 	"github.com/gdamore/tcell/v2"
@@ -14,20 +15,27 @@ type Window struct {
 
 	selectedTab int
 	tabs        []widgets.Widget
-	ex          *widgets.Text
+	ex          *Status
 
 	triggerRedraw atomic.Value // bool
 }
 
 func NewWindow() *Window {
-	t := &widgets.Text{}
-	t.SetContent("ici c'est pour les commandes")
 	w := &Window{
 		tabs: make([]widgets.Widget, 0),
-		ex:   t,
+		ex:   NewStatus("ici c'est pour les commandes"),
 	}
+	w.ex.AskingRedraw(func() {
+		w.AskRedraw()
+	})
 	w.ResetRedraw()
 	m := NewMailboxesView([]string{"inbox", "junk"})
+	i := 0
+	m.OnSelect = func (line widgets.IRune) {
+		w.ShowMessage(fmt.Sprintf("youhou %d", i))
+		i++
+		App.logger.Print("line selected")
+	}
 	w.AddTab(m)
 	return w
 }
@@ -39,6 +47,10 @@ func (w *Window) tabViewPort() *views.ViewPort {
 func (w *Window) exViewPort() *views.ViewPort {
 	_, h := w.screen.Size()
 	return views.NewViewPort(w.screen, 0, h-1, -1, -1)
+}
+
+func (w *Window) ShowMessage(msg string) {
+	w.ex.ShowMessage(msg)
 }
 
 func (w *Window) AddTab(widget widgets.Widget) {

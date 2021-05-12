@@ -37,17 +37,17 @@ func InitApp(l *log.Logger) error {
 		screen.SetStyle(tcell.StyleDefault.
 			Foreground(tcell.ColorWhite).
 			Background(tcell.ColorBlack))
-		w := NewWindow()
-		w.SetScreen(screen)
 		App = &Application{
 			logger: l,
 			tcEvents: make(chan tcell.Event, 10),
 			callbacks: make(map[int]func(m workers.Message) error),
 			db: workers.NewDatabase(l),
 			done: make(chan struct{}),
-			window: w,
 			screen: screen,
 		}
+		w := NewWindow()
+		w.SetScreen(screen)
+		App.window = w
 		App.exit.Store(false)
 		return nil
 	}
