@@ -2,17 +2,19 @@ package widgets
 
 import (
 	"github.com/gdamore/tcell/v2"
-	"github.com/gdamore/tcell/v2/views"
 )
 
 type Text struct {
 	content string
-	view    *views.ViewPort
 	BaseWidget
 }
 
 func (t *Text) SetContent(content string) {
 	t.content = content
+}
+
+func (t *Text) GetContent() string {
+	return t.content
 }
 
 func (t *Text) Draw() {
@@ -34,7 +36,4 @@ func (t *Text) HandleEvent(ev tcell.Event) {
 			return
 		}
 	}
-}
-func (t *Text) SetViewPort(view *views.ViewPort) {
-	t.view = view
 }

@@ -2,7 +2,6 @@ package widgets
 
 import (
 	"github.com/gdamore/tcell/v2"
-	"github.com/gdamore/tcell/v2/views"
 )
 
 type IRune interface {
@@ -13,7 +12,6 @@ type ListWidget struct {
 	lines    []IRune
 	selected int
 	OnSelect func(IRune)
-	view     *views.ViewPort
 	BaseWidget
 }
 
@@ -63,10 +61,6 @@ func (l *ListWidget) Draw() {
 			v.SetContent(x, y, r, nil, style)
 		}
 	}
-}
-
-func (l *ListWidget) SetViewPort(view *views.ViewPort) {
-	l.view = view
 }
 
 func (l *ListWidget) HandleEvent(ev tcell.Event) {
