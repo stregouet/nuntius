@@ -13,6 +13,20 @@ import (
 
 var App *Application
 
+type AppState int
+
+const (
+	STATE_INIT AppState = iota
+	STATE_FETCHING_MAILBOX
+)
+
+// transition info
+type Tr struct {
+	Msg workers.Message
+    ImapCb func(res workers.Message) error
+    DbCb func(res workers.Message) error
+}
+
 type Application struct {
 	exit     atomic.Value // bool
 	logger   *log.Logger
@@ -20,9 +34,12 @@ type Application struct {
 	window   *Window
 	// style    tcell.Style
 	tcEvents chan tcell.Event
-	callbacks map[int]func(m workers.Message) error
 	cbId int
 	done chan struct{}
+
+	state AppState
+	dbcallbacks map[int]func(m workers.Message) error
+	imapcallbacks map[int]func(m workers.Message) error
 
 	db *workers.Database
 }
@@ -40,7 +57,8 @@ func InitApp(l *log.Logger) error {
 		App = &Application{
 			logger: l,
 			tcEvents: make(chan tcell.Event, 10),
-			callbacks: make(map[int]func(m workers.Message) error),
+			dbcallbacks: make(map[int]func(m workers.Message) error),
+			imapcallbacks: make(map[int]func(m workers.Message) error),
 			db: workers.NewDatabase(l),
 			done: make(chan struct{}),
 			screen: screen,
@@ -122,16 +140,27 @@ func (app *Application) tick() bool {
 	return more
 }
 
-func (app *Application) PostDbMessage(req workers.Message, cb func(res workers.Message) error) {
+func (app *Application) PostDbMessage(req *Tr) {
+	msg := req.Msg
 	app.cbId++
-	req.SetId(app.cbId)
-	if cb != nil {
-		app.callbacks[app.cbId] = cb
+	msg.SetId(app.cbId)
+	if req.DbCb != nil {
+		app.dbcallbacks[app.cbId] = req.DbCb
 	}
-	app.db.PostMessage(req)
+	app.db.PostMessage(msg)
 }
 
 
+func (app *Application) Transition(req *Tr) {
+	switch app.state {
+	case STATE_INIT:
+		switch req.Msg.(type) {
+		case *workers.FetchMailbox:
+			app.PostDbMessage(req)
+			app.state = STATE_FETCHING_MAILBOX
+		}
+	}
+}
 // func (app *Application) HandleUiRequest(req *UiRequest) {
 // 	switch app.state {
 // 	case STATE_INIT:
@@ -191,12 +220,12 @@ func (app *Application) Run() {
 		// 	}
 		case res := <-app.db.Responses():
 			id := res.GetId()
-			cb, ok := app.callbacks[id]
+			cb, ok := app.dbcallbacks[id]
 			if !ok {
 				app.logger.Printf("cannot found callbacks with id %d", id)
 			} else {
 				cb(res)
-				delete(app.callbacks, id)
+				delete(app.dbcallbacks, id)
 			}
 		default:
 			for app.tick() {

@@ -40,5 +40,3 @@ func (mv *MailboxesView) HandleEvent(ev tcell.Event) {
 	}
     mv.ListWidget.HandleEvent(ev)
 }
-
-

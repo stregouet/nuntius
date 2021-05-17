@@ -7,7 +7,9 @@ import (
 	"github.com/gdamore/tcell/v2"
 	"github.com/gdamore/tcell/v2/views"
 
+	"github.com/stregouet/nuntius/models"
 	"github.com/stregouet/nuntius/widgets"
+	"github.com/stregouet/nuntius/workers"
 )
 
 type Window struct {
@@ -32,6 +34,28 @@ func NewWindow() *Window {
 	m := NewMailboxesView([]string{"inbox", "junk"})
 	i := 0
 	m.OnSelect = func (line widgets.IRune) {
+		m := line.(*models.Mailbox)
+		msglist := NewMessageList()
+		w.AddTab(msglist)
+		w.ex.SetContent("loading from db...")
+		App.Transition(&Tr{
+			Msg: &workers.FetchMailbox{
+				// XXX account?
+				Mailbox: m.Name,
+			},
+			DbCb: func(res workers.Message) error {
+				r := res.(*workers.FetchMailboxRes)
+				w.ex.SetContent("db done, loading from imap...")
+				msglist.SetList(r.List)
+				return nil
+			},
+			ImapCb: func(res workers.Message) error {
+				r := res.(*workers.FetchMailboxRes)
+				w.ex.SetContent("imap done...")
+				msglist.SetList(r.List)
+				return nil
+			},
+		})
 		w.ShowMessage(fmt.Sprintf("youhou %d", i))
 		i++
 		App.logger.Print("line selected")
@@ -58,6 +82,7 @@ func (w *Window) AddTab(widget widgets.Widget) {
 	widget.AskingRedraw(func() {
 		w.AskRedraw()
 	})
+	w.selectedTab = len(w.tabs) - 1
 	if w.screen != nil {
 		widget.SetViewPort(w.tabViewPort())
 	}
