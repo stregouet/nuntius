@@ -58,7 +58,7 @@ func NewWindow() *Window {
 		})
 		w.ShowMessage(fmt.Sprintf("youhou %d", i))
 		i++
-		App.logger.Print("line selected")
+		App.logger.Debug("line selected")
 	}
 	w.AddTab(m)
 	return w

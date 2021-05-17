@@ -21,7 +21,7 @@ func NewMessageList() *MessageList {
 
 func (ml *MessageList) SetList(newlist []string) {
     ml.ClearLines()
-    App.logger.Printf("setting list with %v", newlist)
+    App.logger.Debugf("setting list with %v", newlist)
     for _, item := range newlist {
         m := &models.Message{Subject: item}
         ml.AddLine(m)

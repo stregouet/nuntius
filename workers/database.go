@@ -3,16 +3,17 @@ package workers
 import (
 	"database/sql"
 	"errors"
-	"log"
+
+	"github.com/stregouet/nuntius/lib"
 )
 
 type Database struct {
 	*BaseWorker
 
-	logger *log.Logger
+	logger *lib.Logger
 }
 
-func NewDatabase(l *log.Logger) *Database {
+func NewDatabase(l *lib.Logger) *Database {
 	bw := &BaseWorker{
 		requests:  make(chan Message, 10),
 		responses: make(chan Message, 10),
@@ -23,7 +24,8 @@ func NewDatabase(l *log.Logger) *Database {
 func (d *Database) Run() {
 	db, err := sql.Open("sqlite3", "sqlite.db")
 	if err != nil {
-		d.logger.Fatalf("cannot open db %v", err)
+		d.logger.Errorf("cannot open db %v", err)
+		panic("cannot open db")
 	}
 	defer db.Close()
 	for {

@@ -2,12 +2,12 @@ package ui
 
 import (
 	"errors"
-	"log"
 	"sync/atomic"
 	"time"
 
 	"github.com/gdamore/tcell/v2"
 
+	"github.com/stregouet/nuntius/lib"
 	"github.com/stregouet/nuntius/workers"
 )
 
@@ -29,7 +29,7 @@ type Tr struct {
 
 type Application struct {
 	exit     atomic.Value // bool
-	logger   *log.Logger
+	logger   *lib.Logger
 	screen   tcell.Screen
 	window   *Window
 	// style    tcell.Style
@@ -44,7 +44,7 @@ type Application struct {
 	db *workers.Database
 }
 
-func InitApp(l *log.Logger) error {
+func InitApp(l *lib.Logger) error {
 	if App == nil {
 		tcell.SetEncodingFallback(tcell.EncodingFallbackASCII)
 		screen, err := tcell.NewScreen()
@@ -72,16 +72,6 @@ func InitApp(l *log.Logger) error {
 	return errors.New("InitApp should be called only once")
 }
 
-func NewApp(l *log.Logger) Application {
-	app := Application{
-		logger:   l,
-		tcEvents: make(chan tcell.Event, 10),
-		db: workers.NewDatabase(l),
-	}
-	app.exit.Store(false)
-
-	return app
-}
 
 // func (app *Application) SetStyle(style tcell.Style) {
 // 	app.style = style
@@ -222,7 +212,7 @@ func (app *Application) Run() {
 			id := res.GetId()
 			cb, ok := app.dbcallbacks[id]
 			if !ok {
-				app.logger.Printf("cannot found callbacks with id %d", id)
+				app.logger.Warnf("cannot found callbacks with id %d", id)
 			} else {
 				cb(res)
 				delete(app.dbcallbacks, id)
