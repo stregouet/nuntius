@@ -76,42 +76,36 @@ func (l *Logger) isEnable(lvl Level) bool {
 }
 
 
-func (l *Logger) _logf(lvl Level, msg string, args ...interface{}) {
+
+func (l *Logger) output(lvl Level, msg string) {
 	if !l.isEnable(lvl) {
 		return
 	}
-	m := fmt.Sprintf(msg, args...)
-	l.Printf("level=%s %s", lvl.ToString(), m)
-}
-func (l *Logger) _log(lvl Level, msg string) {
-	if !l.isEnable(lvl) {
-		return
-	}
-	l.Printf("level=%s %s", lvl.ToString(), msg)
+	l.Output(3, "level=" + lvl.ToString() + " " + msg)
 }
 
 func (l *Logger) Debugf(msg string, args ...interface{}) {
-	l._logf(DEBUG, msg, args...)
+	l.output(DEBUG, fmt.Sprintf(msg, args...))
 }
 func (l *Logger) Logf(msg string, args ...interface{}) {
-	l._logf(LOG, msg, args...)
+	l.output(LOG, fmt.Sprintf(msg, args...))
 }
 func (l *Logger) Warnf(msg string, args ...interface{}) {
-	l._logf(WARN, msg, args...)
+	l.output(WARN, fmt.Sprintf(msg, args...))
 }
 func (l *Logger) Errorf(msg string, args ...interface{}) {
-	l._logf(ERROR, msg, args...)
+	l.output(ERROR, fmt.Sprintf(msg, args...))
 }
 
 func (l *Logger) Debug(msg string, args ...interface{}) {
-	l._log(DEBUG, msg)
+	l.output(DEBUG, msg)
 }
 func (l *Logger) Log(msg string, args ...interface{}) {
-	l._log(LOG, msg)
+	l.output(LOG, msg)
 }
 func (l *Logger) Warn(msg string, args ...interface{}) {
-	l._log(WARN, msg)
+	l.output(WARN, msg)
 }
 func (l *Logger) Error(msg string, args ...interface{}) {
-	l._log(ERROR, msg)
+	l.output(ERROR, msg)
 }
