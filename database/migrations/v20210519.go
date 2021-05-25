@@ -15,7 +15,7 @@ func init() {
 			)`,
 			`CREATE TABLE mailbox (
 				id INTEGER PRIMARY KEY,
-				name TEXT UNIQUE,
+				name TEXT,
 				account INTEGER NOT NULL REFERENCES account(id) ON DELETE CASCADE,
 				UNIQUE (name, account)
 			)`,

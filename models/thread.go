@@ -6,9 +6,20 @@ import (
 	"github.com/pkg/errors"
 )
 
+type Thread struct {
+	Id      int
+	Subject string
+	Date    string
+}
+
+func (m *Thread) ToRune() []rune {
+	return []rune(m.Subject)
+}
+
 type Mail struct {
 	Id        int
 	Threadid  int
+	Account   string
 	Subject   string
 	MessageId string
 	Mailbox   string

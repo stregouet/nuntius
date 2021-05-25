@@ -1,12 +1,17 @@
 package imap
 
 import (
+	"bufio"
 	"fmt"
 	"os/exec"
 	"strings"
+	"time"
 
 	"github.com/emersion/go-imap"
 	"github.com/emersion/go-imap/client"
+	"github.com/emersion/go-message"
+	"github.com/emersion/go-message/mail"
+	"github.com/emersion/go-message/textproto"
 	"github.com/pkg/errors"
 
 	"github.com/stregouet/nuntius/config"
@@ -19,6 +24,7 @@ type Account struct {
 	cfg      *config.Account
 	requests chan workers.Message
 	c        *client.Client
+	selectedMbox *models.Mailbox
 	logger   *lib.Logger
 }
 
@@ -57,6 +63,22 @@ func (a *Account) terminate() error {
 	}
 	return nil
 }
+func (a *Account) selectMbox(mailbox string) error {
+	if a.selectedMbox != nil && a.selectedMbox.Name == mailbox {
+		return nil
+	}
+	res, err := a.c.Select(mailbox, false)
+	if err != nil {
+		return err
+	}
+	a.selectedMbox = &models.Mailbox{
+		Name: mailbox,
+		ReadOnly: res.ReadOnly,
+		Count: res.Messages,
+		Unseen: res.Unseen,
+	}
+	return nil
+}
 
 func (a *Account) Run(responses chan<- workers.Message) {
 	defer a.terminate()
@@ -87,8 +109,86 @@ func (a *Account) Run(responses chan<- workers.Message) {
 				r = &workers.Done{}
 			}
 			postResponse(r, msg.GetId())
+		case *workers.FetchMailbox:
+			result, err := a.handleFetchMailbox(msg.Mailbox)
+			var r workers.Message
+			if err != nil {
+				a.logger.Warnf("error fetching mailbox %v", err)
+				r = &workers.Error{Error: errors.New("error requesting imap server")}
+			} else {
+				r = &workers.MsgToDb{Wrapped: &workers.FetchMailboxImapRes{
+					Mailbox: msg.Mailbox,
+					Mails:result,
+				}}
+			}
+			postResponse(r, msg.GetId())
 		}
 	}
+}
+
+
+func (a *Account) handleFetchMailbox(mailbox string) ([]*models.Mail, error) {
+	err := a.selectMbox(mailbox)
+	if err != nil {
+		return nil, err
+	}
+	criteria := imap.NewSearchCriteria()
+	criteria.Since = time.Now().Add(-48*time.Hour)
+	uids, err := a.c.UidSearch(criteria)
+	if err != nil {
+		return nil, err
+	}
+	section := &imap.BodySectionName{
+		BodyPartName: imap.BodyPartName{
+			Specifier: imap.HeaderSpecifier,
+		},
+		Peek: true,
+	}
+
+	items := []imap.FetchItem{
+		imap.FetchBodyStructure,
+		imap.FetchEnvelope,
+		imap.FetchInternalDate,
+		imap.FetchFlags,
+		imap.FetchUid,
+		section.FetchItem(),
+	}
+	result := make([]*models.Mail, 0)
+	err = fetch(a.c, uids, items, func(m *imap.Message) error {
+		reader := m.GetBody(section)
+		textprotoHeader, err := textproto.ReadHeader(bufio.NewReader(reader))
+		if err != nil {
+			return fmt.Errorf("could not read header: %v", err)
+		}
+		header := &mail.Header{message.Header{textprotoHeader}}
+
+		inreplies, err := header.MsgIDList("in-reply-to")
+		if err != nil {
+			return err
+		}
+		inreply := ""
+		if len(inreplies) > 0 {
+			inreply = inreplies[0]
+		}
+		msgid, err := header.MessageID()
+		if err != nil {
+			return err
+		}
+		mail := &models.Mail{
+			Subject: m.Envelope.Subject,
+			InReplyTo: inreply,
+			MessageId: msgid,
+			Mailbox: mailbox,
+			Account: a.cfg.Name,
+		}
+		result = append(result, mail)
+		return nil
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	return result, nil
 }
 
 func (a *Account) handleFetchMailboxes(msg *workers.FetchMailboxes) ([]*models.Mailbox, error) {
@@ -100,7 +200,7 @@ func (a *Account) handleFetchMailboxes(msg *workers.FetchMailboxes) ([]*models.M
 	}()
 
 	for m := range mailboxes {
-		result = append(result, &models.Mailbox{m.Name})
+		result = append(result, &models.Mailbox{Name: m.Name})
 	}
 
 	if err := <-done; err != nil {

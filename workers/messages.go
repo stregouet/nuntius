@@ -49,7 +49,12 @@ type Error struct {
 
 type FetchMailboxRes struct {
     BaseMessage
-    List []string
+    List []*models.Thread
+}
+type FetchMailboxImapRes struct {
+    BaseMessage
+    Mailbox string
+    Mails []*models.Mail
 }
 type FetchMailbox struct {
     BaseMessage

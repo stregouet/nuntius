@@ -70,7 +70,6 @@ func (d *Database) Run() {
 
 func (d *Database) postResponse(msg Message, id int) {
 	msg.SetId(id)
-	d.logger.Debugf("db will post response message id:%d, (type %#v)", msg.GetId(), msg.(*FetchMailboxesRes))
 	d.responses <- msg
 }
 
@@ -97,6 +96,16 @@ func (d *Database) handleMessage(db *sql.DB, msg Message) {
 		}
 		// tmp := m.SetId(msg.GetId())
 		// d.responses <- m.SetId(msg.GetId())
+		d.postResponse(m, msg.GetId())
+	case *FetchMailboxImapRes:
+		result, err := d.handleFetchMailboxImap(db, msg)
+		var m Message
+		if err != nil {
+			m = &Error{Error: errors.New("oups inserting mails")}
+			d.logger.Errorf("error while inserting mails %v", err)
+		} else {
+			m = &FetchMailboxRes{List: result}
+		}
 		d.postResponse(m, msg.GetId())
 	case *FetchMailbox:
 		result, err := d.handleFetchMailbox(db, msg.Mailbox)
@@ -151,15 +160,42 @@ func (d *Database) handleFetchMailboxes(db *sql.DB, accountname string) ([]*mode
 		if err != nil {
 			return nil, errors.Wrap(err, "while scanning mailboxes")
 		}
-		m := &models.Mailbox{mailboxname}
+		m := &models.Mailbox{Name: mailboxname}
 		result = append(result, m)
 
 	}
 	return result, nil
 }
 
-func (d *Database) handleFetchMailbox(db *sql.DB, mailbox string) ([]string, error) {
-	res := make([]string, 0)
+
+func (d *Database) handleFetchMailboxImap(db *sql.DB, msg *FetchMailboxImapRes) ([]*models.Thread, error) {
+	tx, err := db.Begin()
+	if err != nil {
+		return nil, errors.Wrap(err, "while beginning tx")
+	}
+	for _, m := range msg.Mails {
+		_, err := tx.Exec(`insert into mail (subject, inreplyto, messageid, account, mailbox)
+		select
+		  ?, ?, ?, acc.id, mailbox.id
+		from
+		  account acc
+		  join mailbox on mailbox.account = acc.id
+		where acc.name = ? and mailbox.name = ?`, m.Subject, m.InReplyTo, m.MessageId, m.Account, m.Mailbox)
+		if err != nil {
+			if rollerr := tx.Rollback(); rollerr != nil {
+				return nil, errors.Wrap(rollerr, "while trying to rollback")
+			}
+			return nil, errors.Wrapf(err, "while inserting mail (m: %#v)", m)
+		}
+	}
+	if err = tx.Commit(); err != nil {
+		return nil, errors.Wrap(err, "while commiting tx")
+	}
+	return d.handleFetchMailbox(db, msg.Mailbox)
+}
+
+func (d *Database) handleFetchMailbox(db *sql.DB, mailbox string) ([]*models.Thread, error) {
+	res := make([]*models.Thread, 0)
 	rows, err := db.Query("select id, subject from mail order by date desc limit 40")
 	if err != nil {
 		return nil, err
@@ -171,7 +207,10 @@ func (d *Database) handleFetchMailbox(db *sql.DB, mailbox string) ([]string, err
 		if err != nil {
 			return nil, err
 		}
-		res = append(res, subject)
+		t := &models.Thread{
+			Subject: subject,
+		}
+		res = append(res, t)
 	}
 	return res, nil
 }

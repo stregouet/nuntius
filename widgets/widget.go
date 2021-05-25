@@ -10,6 +10,7 @@ type Widget interface {
 	Draw()
 	SetViewPort(view *views.ViewPort)
 	GetViewPort() *views.ViewPort
+	SetContent(x int, y int, mainc rune, combc []rune, style tcell.Style)
 
 	AskRedraw()
 	AskingRedraw(func())
@@ -23,6 +24,9 @@ type BaseWidget struct {
 	view    *views.ViewPort
 }
 
+func (b *BaseWidget) SetContent(x int, y int, mainc rune, combc []rune, style tcell.Style) {
+	b.view.SetContent(x, y, mainc, combc, style)
+}
 func (b *BaseWidget) SetViewPort(view *views.ViewPort) {
 	b.view = view
 }
