@@ -15,22 +15,8 @@ import (
 
 var App *Application
 
-type AppState int
-
-const (
-	STATE_INIT AppState = iota
-	STATE_INVALID
-	STATE_FETCHING_MAILBOX
-)
 
 type PostCallback func(res workers.Message) error
-
-// transition info
-type Tr struct {
-	Msg workers.Message
-    ImapCb PostCallback
-    DbCb PostCallback
-}
 
 type Application struct {
 	exit     atomic.Value // bool
@@ -42,11 +28,8 @@ type Application struct {
 	cbId int
 	done chan struct{}
 
-	// state AppState
 	dbcallbacks map[int]PostCallback
 	imapcallbacks map[int]PostCallback
-	// trListenerId int
-	// trListeners map[int]func(AppState, *Tr)
 
 	db *workers.Database
 	imap *imap.ImapWorker
@@ -63,8 +46,6 @@ func InitApp(l *lib.Logger, cfg *config.Config) error {
 			Foreground(tcell.ColorWhite).
 			Background(tcell.ColorBlack))
 		App = &Application{
-			// state: STATE_INVALID,
-			// trListeners: make(map[int]func(AppState, *Tr)),
 			logger: l,
 			tcEvents: make(chan tcell.Event, 10),
 			dbcallbacks: make(map[int]PostCallback),
@@ -141,51 +122,38 @@ func (app *Application) tick() bool {
 	return more
 }
 
-func (app *Application) PostDbMessage(req *Tr) {
-	msg := req.Msg
+
+func (app *Application) PostDbMessage(msg workers.Message, accountname string, f PostCallback) {
 	app.cbId++
 	msg.SetId(app.cbId)
-	if req.DbCb != nil {
-		app.dbcallbacks[app.cbId] = req.DbCb
+	msg.SetAccName(accountname)
+	if f != nil {
+		app.dbcallbacks[app.cbId] = f
 	}
 	app.db.PostMessage(msg)
 }
-
-
-func (app *Application) Transition(req *Tr) {
-	switch app.state {
-	case STATE_INIT:
-		switch req.Msg.(type) {
-		case *workers.FetchMailbox:
-			app.PostDbMessage(req)
-			app.state = STATE_FETCHING_MAILBOX
-		}
+func (app *Application) PostImapMessage(msg workers.Message, accountname string, f PostCallback) {
+	app.cbId++
+	msg.SetId(app.cbId)
+	msg.SetAccName(accountname)
+	if f != nil {
+		app.imapcallbacks[app.cbId] = f
 	}
+	app.imap.PostMessage(msg)
 }
-// func (app *Application) HandleUiRequest(req *UiRequest) {
-// 	switch app.state {
-// 	case STATE_INIT:
-// 		switch req := req.(type) {
-// 		case *FetchMailboxes:
-// 			app.PostDbMessage(req, func(res *Response) error {
-// 				res, ok := res.(MailboxesResponse)
-// 				if !ok {
-// 					return fmt.Errorf("error fetching mailboxes")
-// 				}
-// 				l := widgets.NewList(flog)
-// 				for _, m := range res.Mailboxes {
-// 					l.AddLine(&Mailbox{title: m})
-// 				}
-// 				l.OnSelect = func(line widgets.IRune) {
-// 					m, _ := line.(*Mailbox)
-// 					app.PostRequest(&FetchThreads{Mailbox: m.title})
-// 				}
-// 			})
-// 			app.state = STATE_FETCHING_MAILBOXES
-// 		}
-// 	case STATE_FETCHING_MAILBOXES:
-// 	}
-// }
+
+func (app *Application) PostMessage(m workers.Message, accountname string, f PostCallback) {
+	app.PostDbMessage(m, accountname, f)
+	app.PostImapMessage(m, accountname, func(res workers.Message) error {
+		if res, ok := res.(*workers.MsgToDb); ok {
+			wrp := res.Wrapped
+			app.PostDbMessage(wrp, accountname, f)
+		}
+		return nil
+	})
+}
+
+
 
 func (app *Application) Run() {
 	if err := app.initialize(); err != nil {
@@ -209,17 +177,6 @@ func (app *Application) Run() {
 		select {
 		case <-app.done:
 			return
-		// case req := <-app.uiRequest:
-		// 	app.HandleUiRequest(req)
-		// case appEv := <-app.uiEvents:
-		// 	if appEv == widgets.QUIT_EVENT {
-		// 		return
-		// 	} else {
-		// 		if appEv.cb != nil {
-		// 			app.callbacks[appEv.getId()] = appEv.cb
-		// 		}
-		// 		app.db.PostMessage(appEv)
-		// 	}
 		case res := <-app.imap.Responses():
 			id := res.GetId()
 			cb, ok := app.imapcallbacks[id]
