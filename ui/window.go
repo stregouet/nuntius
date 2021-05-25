@@ -7,7 +7,7 @@ import (
 	"github.com/gdamore/tcell/v2"
 	"github.com/gdamore/tcell/v2/views"
 
-	"github.com/stregouet/nuntius/models"
+	"github.com/stregouet/nuntius/config"
 	"github.com/stregouet/nuntius/widgets"
 	"github.com/stregouet/nuntius/workers"
 )
@@ -22,7 +22,7 @@ type Window struct {
 	triggerRedraw atomic.Value // bool
 }
 
-func NewWindow() *Window {
+func NewWindow(cfg []*config.Account) *Window {
 	w := &Window{
 		tabs: make([]widgets.Widget, 0),
 		ex:   NewStatus("ici c'est pour les commandes"),
@@ -31,36 +31,38 @@ func NewWindow() *Window {
 		w.AskRedraw()
 	})
 	w.ResetRedraw()
-	m := NewMailboxesView([]string{"inbox", "junk"})
-	i := 0
-	m.OnSelect = func (line widgets.IRune) {
-		m := line.(*models.Mailbox)
-		msglist := NewMessageList()
-		w.AddTab(msglist)
-		w.ex.SetContent("loading from db...")
-		App.Transition(&Tr{
-			Msg: &workers.FetchMailbox{
-				// XXX account?
-				Mailbox: m.Name,
-			},
-			DbCb: func(res workers.Message) error {
-				r := res.(*workers.FetchMailboxRes)
-				w.ex.SetContent("db done, loading from imap...")
-				msglist.SetList(r.List)
+
+
+	for _, c := range cfg {
+		App.PostImapMessage(
+			&workers.ConnectImap{},
+			c.Name,
+			func(response workers.Message) error {
+				if  r, ok := response.(*workers.Error); ok {
+					w.ShowMessagef("cannot connect to imap server: %v", r.Error)
+				}
 				return nil
 			},
-			ImapCb: func(res workers.Message) error {
-				r := res.(*workers.FetchMailboxRes)
-				w.ex.SetContent("imap done...")
-				msglist.SetList(r.List)
+		)
+		accwidget := NewMailboxesView(c.Name)
+		App.PostMessage(
+			&workers.FetchMailboxes{},
+			c.Name,
+			func(response workers.Message) error {
+				switch r := response.(type) {
+				case *workers.Error:
+					App.logger.Errorf("fetchmailboxes res %v", response)
+					w.ShowMessage(r.Error.Error())
+				case *workers.FetchMailboxesRes:
+					App.logger.Debugf("fetchmailboxes res %v", response)
+					accwidget.SetMailboxes(r.Mailboxes) // XXX should call askredraw
+				default:
+					App.logger.Error("unknown response type")
+				}
 				return nil
-			},
-		})
-		w.ShowMessage(fmt.Sprintf("youhou %d", i))
-		i++
-		App.logger.Debug("line selected")
+			})
+		w.AddTab(accwidget)
 	}
-	w.AddTab(m)
 	return w
 }
 
@@ -75,6 +77,10 @@ func (w *Window) exViewPort() *views.ViewPort {
 
 func (w *Window) ShowMessage(msg string) {
 	w.ex.ShowMessage(msg)
+}
+func (w *Window) ShowMessagef(msg string, args ...interface{}) {
+	m := fmt.Sprintf(msg, args...)
+	w.ex.ShowMessage(m)
 }
 
 func (w *Window) AddTab(widget widgets.Widget) {

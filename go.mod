@@ -4,6 +4,7 @@ go 1.16
 
 require (
 	github.com/armon/consul-api v0.0.0-20180202201655-eb2c6b5be1b6 // indirect
+	github.com/emersion/go-imap v1.1.0 // indirect
 	github.com/gdamore/tcell/v2 v2.2.0 // indirect
 	github.com/json-iterator/go v1.1.9 // indirect
 	github.com/mattn/go-sqlite3 v1.14.7 // indirect

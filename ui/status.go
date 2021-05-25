@@ -36,7 +36,7 @@ func (s *Status) ShowMessage(msg string) {
 	s.tmpContent.Push(c)
 	s.AskRedraw()
 	go func() {
-		time.Sleep(2 * time.Second)
+		time.Sleep(5 * time.Second)
 		s.tmpContent.Remove(c)
 		s.AskRedraw()
 	}()

@@ -9,21 +9,24 @@ import (
 
 type MailboxesView struct {
     mailboxes []*models.Mailbox
+	accountName string
     *widgets.ListWidget
 }
 
-func NewMailboxesView(mboxes []string) *MailboxesView {
+func NewMailboxesView(accountName string) *MailboxesView {
     l := widgets.NewList()
-    mailboxes := make([]*models.Mailbox, 0, len(mboxes))
-    for _, mbox := range mboxes {
-        m := &models.Mailbox{mbox}
-        mailboxes = append(mailboxes, m)
-        l.AddLine(m)
-    }
     return &MailboxesView{
-        mailboxes: mailboxes,
+		accountName: accountName,
         ListWidget: l,
     }
+}
+
+func (mv *MailboxesView) SetMailboxes(mboxes []*models.Mailbox) {
+	mv.mailboxes = mboxes
+    for _, mbox := range mboxes {
+        mv.AddLine(mbox)
+    }
+	mv.AskRedraw()
 }
 
 func (mv *MailboxesView) HandleEvent(ev tcell.Event) {

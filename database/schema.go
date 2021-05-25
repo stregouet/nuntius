@@ -39,7 +39,11 @@ func Register(m *Migration) {
 }
 
 func Setup(tx *sql.Tx) error {
-	_, err := tx.Exec(`CREATE TABLE _migrations(
+	_, err := tx.Exec("PRAGMA foreign_keys=on")
+	if err != nil {
+		return err
+	}
+	_, err = tx.Exec(`CREATE TABLE IF NOT EXISTS _migrations(
     version TEXT PRIMARY KEY,
     description TEXT,
     sha1 TEXT,

@@ -16,13 +16,11 @@ func init() {
 				uid INTEGER,
 				subject TEXT,
 				messageid TEXT,
-				inreplyto TEXT,
-				mailbox TEXT
+				inreplyto TEXT
 			)`,
 			"CREATE INDEX subject_idx ON mail(subject)",
 			"CREATE INDEX messageid_idx ON mail(messageid)",
 			"CREATE INDEX inreplyto_idx ON mail(inreplyto)",
-			"CREATE INDEX mailbox_idx ON mail(mailbox)",
 			"CREATE TABLE counter (name text, value integer)",
 			"INSERT INTO counter (name, value) VALUES ('threadid', 0)",
 		},

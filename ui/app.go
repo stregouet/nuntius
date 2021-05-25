@@ -7,8 +7,10 @@ import (
 
 	"github.com/gdamore/tcell/v2"
 
+	"github.com/stregouet/nuntius/config"
 	"github.com/stregouet/nuntius/lib"
 	"github.com/stregouet/nuntius/workers"
+	"github.com/stregouet/nuntius/workers/imap"
 )
 
 var App *Application
@@ -17,14 +19,17 @@ type AppState int
 
 const (
 	STATE_INIT AppState = iota
+	STATE_INVALID
 	STATE_FETCHING_MAILBOX
 )
+
+type PostCallback func(res workers.Message) error
 
 // transition info
 type Tr struct {
 	Msg workers.Message
-    ImapCb func(res workers.Message) error
-    DbCb func(res workers.Message) error
+    ImapCb PostCallback
+    DbCb PostCallback
 }
 
 type Application struct {
@@ -37,14 +42,17 @@ type Application struct {
 	cbId int
 	done chan struct{}
 
-	state AppState
-	dbcallbacks map[int]func(m workers.Message) error
-	imapcallbacks map[int]func(m workers.Message) error
+	// state AppState
+	dbcallbacks map[int]PostCallback
+	imapcallbacks map[int]PostCallback
+	// trListenerId int
+	// trListeners map[int]func(AppState, *Tr)
 
 	db *workers.Database
+	imap *imap.ImapWorker
 }
 
-func InitApp(l *lib.Logger) error {
+func InitApp(l *lib.Logger, cfg *config.Config) error {
 	if App == nil {
 		tcell.SetEncodingFallback(tcell.EncodingFallbackASCII)
 		screen, err := tcell.NewScreen()
@@ -55,15 +63,18 @@ func InitApp(l *lib.Logger) error {
 			Foreground(tcell.ColorWhite).
 			Background(tcell.ColorBlack))
 		App = &Application{
+			// state: STATE_INVALID,
+			// trListeners: make(map[int]func(AppState, *Tr)),
 			logger: l,
 			tcEvents: make(chan tcell.Event, 10),
-			dbcallbacks: make(map[int]func(m workers.Message) error),
-			imapcallbacks: make(map[int]func(m workers.Message) error),
+			dbcallbacks: make(map[int]PostCallback),
+			imapcallbacks: make(map[int]PostCallback),
 			db: workers.NewDatabase(l),
+			imap: imap.NewImapWorker(l, cfg.Accounts),
 			done: make(chan struct{}),
 			screen: screen,
 		}
-		w := NewWindow()
+		w := NewWindow(cfg.Accounts)
 		w.SetScreen(screen)
 		App.window = w
 		App.exit.Store(false)
@@ -181,6 +192,7 @@ func (app *Application) Run() {
 		panic(err)
 	}
 	go app.db.Run()
+	go app.imap.Run()
 
 	app.screen.Init()
 	app.screen.Clear()
@@ -208,11 +220,20 @@ func (app *Application) Run() {
 		// 		}
 		// 		app.db.PostMessage(appEv)
 		// 	}
+		case res := <-app.imap.Responses():
+			id := res.GetId()
+			cb, ok := app.imapcallbacks[id]
+			if !ok {
+				app.logger.Warnf("cannot found imap callbacks with id %d", id)
+			} else {
+				cb(res)
+				delete(app.dbcallbacks, id)
+			}
 		case res := <-app.db.Responses():
 			id := res.GetId()
 			cb, ok := app.dbcallbacks[id]
 			if !ok {
-				app.logger.Warnf("cannot found callbacks with id %d", id)
+				app.logger.Warnf("cannot found db callbacks with id %d", id)
 			} else {
 				cb(res)
 				delete(app.dbcallbacks, id)

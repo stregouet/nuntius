@@ -1,6 +1,8 @@
 package config
 
 import (
+    "errors"
+
     "github.com/stregouet/nuntius/lib"
 )
 
@@ -22,13 +24,16 @@ type Config struct {
         Level string
         Output string
     }
-    Accounts []Account
+    Accounts []*Account
 }
 
 func (c *Config) Validate() error {
     _, err := lib.LogParseLevel(c.Log.Level)
     if err != nil {
         return err
+    }
+    if len(c.Accounts) < 1 {
+        return errors.New("need at least one account")
     }
     return nil
 }
