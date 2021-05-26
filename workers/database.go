@@ -31,14 +31,23 @@ func (d *Database) setup(db *sql.DB) error {
 	}
 	tx, err := db.Begin()
 	if err != nil {
+		if rollerr := tx.Rollback(); rollerr != nil {
+			return errors.Wrap(rollerr, "while trying to rollback")
+		}
 		return errors.Wrap(err, "while beginning transaction")
 	}
 	err = ndb.Setup(tx)
 	if err != nil {
+		if rollerr := tx.Rollback(); rollerr != nil {
+			return errors.Wrap(rollerr, "while trying to rollback")
+		}
 		return errors.Wrap(err, "while creating _migrations table")
 	}
 	err = ndb.Migrate(tx)
 	if err != nil {
+		if rollerr := tx.Rollback(); rollerr != nil {
+			return errors.Wrap(rollerr, "while trying to rollback")
+		}
 		return errors.Wrap(err, "while migrating db")
 	}
 	err = tx.Commit()
@@ -89,7 +98,7 @@ func (d *Database) handleMessage(db *sql.DB, msg Message) {
 		result, err := d.handleFetchMailboxes(db, msg.GetAccName())
 		var m Message
 		if err != nil {
-			m = &Error{Error: errors.New("oups fetch mailbox")}
+			m = &Error{Error: errors.New("oups fetch mailboxes")}
 			d.logger.Errorf("error while fetchingmailboxes %v", err)
 		} else {
 			m = &FetchMailboxesRes{Mailboxes: result}
