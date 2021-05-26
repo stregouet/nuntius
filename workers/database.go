@@ -119,52 +119,17 @@ func (d *Database) handleMessage(db *sql.DB, msg Message) {
 	}
 }
 
-// return id for account with name `accountname`, in case this account does not exist
-// it will insert it
-func (d *Database) getOrCreateAccount(db *sql.DB, accountname string) (int, error) {
-	row := db.QueryRow("select id from account where name = ?", accountname)
-	var id int
-	err := row.Scan(&id)
-	if errors.Is(err, sql.ErrNoRows) {
-		// no account with this name => we should create one
-		result, err := db.Exec("insert into account (name) values (?) returning *", accountname)
-		if err != nil {
-			return 0, err
-		}
-		v, err := result.LastInsertId()
-		if err != nil {
-			return 0, err
-		}
-		return int(v), nil
-	} else if err != nil {
-		return 0, err
-	} else {
-		return id, nil
-	}
-}
-
 
 func (d *Database) handleFetchMailboxes(db *sql.DB, accountname string) ([]*models.Mailbox, error) {
-	accid, err := d.getOrCreateAccount(db, accountname)
+	_, err := db.Exec("insert into account (name) values (?) on conflict (name) do nothing", accountname)
 	if err != nil {
-		return nil, errors.Wrap(err, "while getting account id")
+		return nil, errors.Wrap(err, "while inserting account")
 	}
-	rows, err := db.Query("select mailbox from mail where account = ?", accid)
+	rows, err := models.AllMailboxes(db, accountname)
 	if err != nil {
 		return nil, errors.Wrap(err, "while selecting mailboxes")
 	}
-	result := make([]*models.Mailbox, 0)
-	for rows.Next() {
-		var mailboxname string
-		err = rows.Scan(&mailboxname)
-		if err != nil {
-			return nil, errors.Wrap(err, "while scanning mailboxes")
-		}
-		m := &models.Mailbox{Name: mailboxname}
-		result = append(result, m)
-
-	}
-	return result, nil
+	return rows, nil
 }
 
 
@@ -216,16 +181,12 @@ func (d *Database) handleFetchMailbox(db *sql.DB, mailbox string) ([]*models.Thr
 }
 
 func (d *Database) handleFetchMailboxesImap(db *sql.DB, msg *FetchMailboxesImapRes) ([]*models.Mailbox, error) {
-	accid, err := d.getOrCreateAccount(db, msg.GetAccName())
-	if err != nil {
-		return nil, errors.Wrap(err, "while getting account id")
-	}
 	tx, err := db.Begin()
 	if err != nil {
 		return nil, errors.Wrap(err, "while beginning tx")
 	}
 	for _, m := range msg.Mailboxes {
-		_, err = tx.Exec("insert into mailbox (name, account)  values (?, ?) on conflict (name, account) do nothing", m.Name, accid)
+		err = m.InsertInto(tx, msg.GetAccName())
 		if err != nil {
 			if rollerr := tx.Rollback(); rollerr != nil {
 				return nil, errors.Wrap(rollerr, "while trying to rollback")
@@ -237,5 +198,5 @@ func (d *Database) handleFetchMailboxesImap(db *sql.DB, msg *FetchMailboxesImapR
 	if err = tx.Commit(); err != nil {
 		return nil, errors.Wrap(err, "while commiting tx")
 	}
-	return msg.Mailboxes, nil
+	return d.handleFetchMailboxes(db, msg.GetAccName())
 }

@@ -1,8 +1,6 @@
 package widgets
 
 import (
-	"log"
-
 	"github.com/gdamore/tcell/v2"
 )
 
@@ -22,18 +20,20 @@ type TreeWidget struct {
 	selected   int
 	indentSize int
 	OnSelect   func(ITreeLine)
-	logger     *log.Logger
 	ListWidget
 }
 
-func NewTree(l *log.Logger) TreeWidget {
-	return TreeWidget{
+func NewTree() *TreeWidget {
+	return &TreeWidget{
 		indentSize: 2,
 		lines:      make([]ITreeLine, 0),
 		OnSelect:   func(ITreeLine) {},
 		selected:   1,
-		logger:     l,
 	}
+}
+
+func (t *TreeWidget) ClearLines() {
+	t.lines = make([]ITreeLine, 0)
 }
 
 func (t *TreeWidget) AddLine(line ITreeLine) {
@@ -69,7 +69,7 @@ func (t *TreeWidget) Draw() {
 		}
 
 		arrowCells := arrayWithSpace(line.Depth() * t.indentSize)
-		if y != 0 {
+		if y != 0 && len(arrowCells) > 0 {
 			nextlines := t.lines[y+1:]
 			for level := 1; level < line.Depth(); level++ {
 				if samelevelInNextlines(nextlines, level) {
@@ -111,6 +111,10 @@ func (t *TreeWidget) Draw() {
 			v.SetContent(x, y, r, nil, style)
 		}
 	}
+}
+
+func (t *TreeWidget) onSelect() {
+	t.OnSelect(t.lines[t.selected-1])
 }
 
 func (t *TreeWidget) HandleEvent(ev tcell.Event) {

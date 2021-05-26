@@ -191,6 +191,15 @@ func (a *Account) handleFetchMailbox(mailbox string) ([]*models.Mail, error) {
 	return result, nil
 }
 
+func canOpen(mbox *imap.MailboxInfo) bool {
+	for _, attr := range mbox.Attributes {
+		if attr == imap.NoSelectAttr {
+			return false
+		}
+	}
+	return true
+}
+
 func (a *Account) handleFetchMailboxes(msg *workers.FetchMailboxes) ([]*models.Mailbox, error) {
 	result := make([]*models.Mailbox, 0)
 	mailboxes := make(chan *imap.MailboxInfo, 10)
@@ -200,7 +209,17 @@ func (a *Account) handleFetchMailboxes(msg *workers.FetchMailboxes) ([]*models.M
 	}()
 
 	for m := range mailboxes {
-		result = append(result, &models.Mailbox{Name: m.Name})
+		parent := ""
+		if !canOpen(m) {
+			continue
+		}
+		parts := strings.Split(m.Name, m.Delimiter)
+		shortName := parts[len(parts) - 1]
+		if len(parts) > 1 {
+			parent = parts[len(parts) - 2]
+		}
+		mbox := models.Mailbox{Name: m.Name, ShortName: shortName, Parent: parent}
+		result = append(result, &mbox)
 	}
 
 	if err := <-done; err != nil {

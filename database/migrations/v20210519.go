@@ -16,9 +16,12 @@ func init() {
 			`CREATE TABLE mailbox (
 				id INTEGER PRIMARY KEY,
 				name TEXT,
+				shortname TEXT,
+				parent TEXT,
 				account INTEGER NOT NULL REFERENCES account(id) ON DELETE CASCADE,
 				UNIQUE (name, account)
 			)`,
+			"CREATE INDEX mailbox_parent_idx ON mailbox(parent)",
 			"ALTER TABLE mail ADD COLUMN account INTEGER NOT NULL REFERENCES account(id) ON DELETE CASCADE",
 			"ALTER TABLE mail ADD COLUMN mailbox INTEGER NOT NULL REFERENCES mailbox(id) ON DELETE CASCADE",
 		},

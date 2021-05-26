@@ -10,7 +10,6 @@ import (
 	"github.com/stregouet/nuntius/config"
 	"github.com/stregouet/nuntius/lib"
 	"github.com/stregouet/nuntius/models"
-	"github.com/stregouet/nuntius/widgets"
 	"github.com/stregouet/nuntius/workers"
 )
 
@@ -28,14 +27,14 @@ const (
 )
 
 type WindowMachineCtx struct {
-	tabs        []widgets.Widget
+	tabs        []*Tab
 	selectedTab int
 }
 
 func buildWindowMachine() *lib.Machine {
 	return lib.NewMachine(
 		&WindowMachineCtx{
-			tabs:        make([]widgets.Widget, 0),
+			tabs:        make([]*Tab, 0),
 			selectedTab: 0,
 		},
 		STATE_SHOW_TAB,
@@ -46,8 +45,8 @@ func buildWindowMachine() *lib.Machine {
 						Target: STATE_SHOW_TAB,
 						Action: func(c interface{}, ev *lib.Event) {
 							wmc := c.(*WindowMachineCtx)
-							newwidget := ev.Payload.(widgets.Widget)
-							wmc.tabs = append(wmc.tabs, newwidget)
+							newtab := ev.Payload.(*Tab)
+							wmc.tabs = append(wmc.tabs, newtab)
 							wmc.selectedTab = len(wmc.tabs) - 1
 						},
 					},
@@ -107,6 +106,7 @@ func NewWindow(cfg []*config.Account) *Window {
 			&workers.FetchMailboxes{},
 			c.Name,
 			func(response workers.Message) error {
+				App.logger.Debug("fetchmailboxes callback")
 				switch r := response.(type) {
 				case *workers.Error:
 					App.logger.Errorf("fetchmailboxes res %v", response)
@@ -119,7 +119,7 @@ func NewWindow(cfg []*config.Account) *Window {
 				}
 				return nil
 			})
-		w.machine.Send(&lib.Event{TR_OPEN_TAB, accwidget})
+		w.machine.Send(&lib.Event{TR_OPEN_TAB, &Tab{accwidget, c.Name, nil}})
 	}
 	return w
 }
@@ -145,23 +145,23 @@ func (w *Window) onSelectMailbox(acc string, mailbox *models.Mailbox) {
 			}
 			return nil
 		})
-	w.machine.Send(&lib.Event{TR_OPEN_TAB, mv})
+	w.machine.Send(&lib.Event{TR_OPEN_TAB, &Tab{mv, mailbox.TabTitle(), nil}})
 }
 
 func (w *Window) onOpenTab(s *lib.State, ev *lib.Event) {
-	widget := ev.Payload.(widgets.Widget)
-	widget.AskingRedraw(func() {
+	tab := ev.Payload.(*Tab)
+	tab.Content.AskingRedraw(func() {
 		w.AskRedraw()
 	})
 	if w.screen != nil {
 		w.screen.Clear()
-		widget.SetViewPort(w.tabViewPort())
+		tab.Content.SetViewPort(w.tabViewPort())
 	}
 }
 
 func (w *Window) tabViewPort() *views.ViewPort {
 	_, h := w.screen.Size()
-	return views.NewViewPort(w.screen, 0, 0, -1, h-1)
+	return views.NewViewPort(w.screen, 0, 2, -1, h-1)
 }
 func (w *Window) exViewPort() *views.ViewPort {
 	_, h := w.screen.Size()
@@ -197,17 +197,35 @@ func (w *Window) SetScreen(s tcell.Screen) {
 	w.ex.SetViewPort(w.exViewPort())
 	state := w.state()
 	for _, t := range state.tabs {
-		t.SetViewPort(w.tabViewPort())
+		t.Content.SetViewPort(w.tabViewPort())
 	}
 }
 func (w *Window) Draw() {
+	width, _ := w.screen.Size()
+	styleBase := tcell.StyleDefault
+	styleRev := styleBase.Reverse(true)
+	for x := 0 ; x <= width ; x++ {
+		w.screen.SetContent(x, 0, ' ', nil, styleBase)
+		w.screen.SetContent(x, 1, '─', nil, styleBase)
+	}
 	s := w.state()
-	s.tabs[s.selectedTab].Draw()
+	offset := 1
+	for i, t := range s.tabs {
+		style := styleBase
+		if i == s.selectedTab {
+			style = styleRev
+		}
+		for x, runec := range t.Title {
+			w.screen.SetContent(offset + x, 0, runec, nil, style)
+		}
+		offset += len(t.Title) + 1
+	}
+	s.tabs[s.selectedTab].Content.Draw()
 	w.ex.Draw()
 }
 func (w *Window) TabHandleEvent(ev tcell.Event) {
 	s := w.state()
-	s.tabs[s.selectedTab].HandleEvent(ev)
+	s.tabs[s.selectedTab].Content.HandleEvent(ev)
 }
 func (w *Window) ExHandleEvent(ev tcell.Event) {
 	w.ex.HandleEvent(ev)

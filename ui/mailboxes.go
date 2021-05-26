@@ -74,19 +74,19 @@ func buildMailboxesMachine() *lib.Machine {
 type MailboxesView struct {
 	machine     *lib.Machine
 	accountName string
-	*widgets.ListWidget
+	*widgets.TreeWidget
 }
 
 func NewMailboxesView(accountName string, onSelect func(accname string, m *models.Mailbox)) *MailboxesView {
-	l := widgets.NewList()
-	l.OnSelect = func(line widgets.IRune) {
+	t := widgets.NewTree()
+	t.OnSelect = func(line widgets.ITreeLine) {
 		m := line.(*models.Mailbox)
 		onSelect(accountName, m)
 	}
 	return &MailboxesView{
 		machine:     buildMailboxesMachine(),
 		accountName: accountName,
-		ListWidget:  l,
+		TreeWidget:  t,
 	}
 }
 func (mv *MailboxesView) Draw() {
@@ -96,12 +96,13 @@ func (mv *MailboxesView) Draw() {
 			mv.SetContent(i, 0, c, nil, style)
 		}
 	} else {
-		mv.ListWidget.Draw()
+		mv.TreeWidget.Draw()
 	}
 }
 
 func (mv *MailboxesView) SetMailboxes(mboxes []*models.Mailbox) {
 	mv.machine.Send(&lib.Event{TR_SET_MBOXES, mboxes})
+	mv.ClearLines()
 	for _, mbox := range mboxes {
 		mv.AddLine(mbox)
 	}
@@ -120,5 +121,5 @@ func (mv *MailboxesView) HandleEvent(ev tcell.Event) {
 			}
 		}
 	}
-	mv.ListWidget.HandleEvent(ev)
+	mv.TreeWidget.HandleEvent(ev)
 }
