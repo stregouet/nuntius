@@ -164,16 +164,31 @@ func (m *Mail) UpdateThreadid(tx *sql.Tx) error {
 }
 
 func AllThreads(r ndb.Queryer, mailbox, accname string) ([]*Thread, error) {
-	rows, err := r.Query(`SELECT m.threadid, max(m.subject), max(m.date), count(m.id)
-FROM
-  mail m
-  JOIN mailbox mbox ON mbox.id = m.mailbox
-  JOIN account a ON a.id = m.account AND a.id = mbox.account
+	// select all threads in specified account, mailbox with:
+	// - count of messages in this thread
+	// - date of the most recent messages in this thread
+	// - subject of root of this thread
+	rows, err := r.Query(`WITH q AS (
+  SELECT
+    subject,
+    threadid,
+	inreplyto,
+    COUNT(1) OVER w as count,
+    MAX(date) OVER w as date
+  FROM
+    mail m
+    JOIN mailbox mbox ON mbox.id = m.mailbox
+    JOIN account a ON a.id = m.account AND a.id = mbox.account
+  WHERE
+    a.name = ? AND
+    mbox.name = ?
+  WINDOW w AS (partition by threadid)
+) SELECT
+  q.threadid, q.subject, q.date, q.count
+FROM q
 WHERE
-  a.name = ? AND
-  mbox.name = ?
-GROUP BY 1
-	`, accname, mailbox)
+  NOT EXISTS (SELECT 1 FROM mail p WHERE q.inreplyto = p.messageid)
+`, accname, mailbox)
 	if err != nil {
 		return nil, err
 	}
@@ -194,4 +209,29 @@ GROUP BY 1
 		result = append(result, t)
 	}
 	return result, nil
+}
+
+func AllThreadsRoot(r ndb.Queryer, accname string) ([]*Mail, error) {
+	rows, err := r.Query(`
+SELECT m.id
+FROM
+  mail m
+  JOIN account a on m.account = a.id
+WHERE
+  a.name = ? AND
+  NOT EXISTS (SELECT 1 FROM mail p WHERE m.inreplyto = p.messageid)`, accname)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	roots := make([]*Mail, 0)
+	for rows.Next() {
+		var id int
+		err = rows.Scan(&id)
+		if err != nil {
+			return nil, err
+		}
+		roots = append(roots, &Mail{Id: id})
+	}
+	return roots, nil
 }

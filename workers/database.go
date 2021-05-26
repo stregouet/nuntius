@@ -148,6 +148,7 @@ func (d *Database) handleFetchMailboxImap(db *sql.DB, msg *FetchMailboxImapRes) 
 	if err != nil {
 		return nil, errors.Wrap(err, "while beginning tx")
 	}
+	// first insert mails on db
 	for _, m := range msg.Mails {
 		err = m.InsertInto(tx, msg.Mailbox, msg.GetAccName())
 		if err != nil {
@@ -156,6 +157,23 @@ func (d *Database) handleFetchMailboxImap(db *sql.DB, msg *FetchMailboxImapRes) 
 			}
 			return nil, errors.Wrapf(err, "while inserting mail (m: %#v)", m)
 		}
+	}
+	// then fetch all threads root
+	roots, err := models.AllThreadsRoot(tx, msg.GetAccName())
+	if err != nil {
+		if rollerr := tx.Rollback(); rollerr != nil {
+			return nil, errors.Wrap(rollerr, "while trying to rollback")
+		}
+		return nil, errors.Wrap(err, "while getting roots")
+	}
+	// finally insert new threadid
+	threadid := 0
+	nextThreadid := func() int {
+		threadid++
+		return threadid
+	}
+	for _, m := range roots {
+		m.UpdateThreadidOnChild(tx, nextThreadid())
 	}
 	if err = tx.Commit(); err != nil {
 		return nil, errors.Wrap(err, "while commiting tx")
