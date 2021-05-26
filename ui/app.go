@@ -143,7 +143,7 @@ func (app *Application) PostImapMessage(msg workers.Message, accountname string,
 }
 
 func (app *Application) PostMessage(m workers.Message, accountname string, f PostCallback) {
-	app.PostDbMessage(m, accountname, f)
+	app.PostDbMessage(m.Clone(), accountname, f)
 	app.PostImapMessage(m, accountname, func(res workers.Message) error {
 		if res, ok := res.(*workers.MsgToDb); ok {
 			wrp := res.Wrapped
@@ -184,7 +184,7 @@ func (app *Application) Run() {
 				app.logger.Warnf("cannot found imap callbacks with id %d", id)
 			} else {
 				cb(res)
-				delete(app.dbcallbacks, id)
+				delete(app.imapcallbacks, id)
 			}
 		case res := <-app.db.Responses():
 			id := res.GetId()
