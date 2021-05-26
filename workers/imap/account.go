@@ -20,6 +20,8 @@ import (
 	"github.com/stregouet/nuntius/workers"
 )
 
+var PARSE_IMAP_ERR = errors.New("error parsing mail from imap server")
+
 type Account struct {
 	cfg      *config.Account
 	requests chan workers.Message
@@ -162,12 +164,28 @@ func (a *Account) handleFetchMailbox(mailbox string) ([]*models.Mail, error) {
 		}
 		header := &mail.Header{message.Header{textprotoHeader}}
 
+		inreplies, err := header.MsgIDList("in-reply-to")
+		if err != nil {
+			a.logger.Errorf("cannot parse in-reply, %v", err)
+			return PARSE_IMAP_ERR
+		}
+		inreply := ""
+		if len(inreplies) > 0 {
+			inreply = inreplies[0]
+		}
+		msgid, err := header.MessageID()
+		if err != nil {
+			a.logger.Errorf("cannot parse messageid, %v", err)
+			return PARSE_IMAP_ERR
+		}
+
 		mail := &models.Mail{
 			Subject: m.Envelope.Subject,
-			InReplyTo: m.Envelope.InReplyTo,
-			MessageId: m.Envelope.MessageId,
+			InReplyTo: inreply,
+			MessageId: msgid,
 			Date: m.Envelope.Date,
 			Flags: m.Flags,
+			Uid: m.Uid,
 			Header: header,
 		}
 		result = append(result, mail)
