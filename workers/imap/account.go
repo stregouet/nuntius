@@ -162,24 +162,13 @@ func (a *Account) handleFetchMailbox(mailbox string) ([]*models.Mail, error) {
 		}
 		header := &mail.Header{message.Header{textprotoHeader}}
 
-		inreplies, err := header.MsgIDList("in-reply-to")
-		if err != nil {
-			return err
-		}
-		inreply := ""
-		if len(inreplies) > 0 {
-			inreply = inreplies[0]
-		}
-		msgid, err := header.MessageID()
-		if err != nil {
-			return err
-		}
 		mail := &models.Mail{
 			Subject: m.Envelope.Subject,
-			InReplyTo: inreply,
-			MessageId: msgid,
-			Mailbox: mailbox,
-			Account: a.cfg.Name,
+			InReplyTo: m.Envelope.InReplyTo,
+			MessageId: m.Envelope.MessageId,
+			Date: m.Envelope.Date,
+			Flags: m.Flags,
+			Header: header,
 		}
 		result = append(result, mail)
 		return nil

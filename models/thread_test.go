@@ -94,7 +94,13 @@ func TestThreadidAttribution(t *testing.T) {
 	if err != nil {
 		t.Fatalf("cannot begin transaction %v", err)
 	}
+	uid := uint32(1)
+	nextuid := func() uint32 {
+		uid++
+		return uid
+	}
 	insertMail := func(m *Mail) *Mail {
+		m.Uid = nextuid()
 		err = m.UpdateThreadid(tx)
 		if err != nil {
 			t.Fatal(err)
@@ -161,7 +167,13 @@ func TestThreadidAttributionOrder1(t *testing.T) {
 	if err != nil {
 		t.Fatalf("cannot begin transaction %v", err)
 	}
+	uid := uint32(1)
+	nextuid := func() uint32 {
+		uid++
+		return uid
+	}
 	insertMail := func(m *Mail) *Mail {
+		m.Uid = nextuid()
 		err = m.UpdateThreadid(tx)
 		if err != nil {
 			t.Fatal(err)
@@ -237,7 +249,13 @@ func TestThreadidAttributionOrder2(t *testing.T) {
 	if err != nil {
 		t.Fatalf("cannot begin transaction %v", err)
 	}
+	uid := uint32(1)
+	nextuid := func() uint32 {
+		uid++
+		return uid
+	}
 	insertMail := func(m *Mail) *Mail {
+		m.Uid = nextuid()
 		err = m.UpdateThreadid(tx)
 		if err != nil {
 			t.Fatal(err)

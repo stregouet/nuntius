@@ -2,7 +2,11 @@ package models
 
 import (
 	"database/sql"
+	"fmt"
+	"strings"
+	"time"
 
+	"github.com/emersion/go-message/mail"
 	"github.com/pkg/errors"
 
 	ndb "github.com/stregouet/nuntius/database"
@@ -11,22 +15,29 @@ import (
 type Thread struct {
 	Id      int
 	Subject string
-	Date    string
+	Date    time.Time
+	Count   int
 }
 
 func (m *Thread) ToRune() []rune {
-	return []rune(m.Subject)
+	return []rune(fmt.Sprintf("%s (%d) %s",
+		m.Date.Format("2006-01-02 15:04:05"),
+		m.Count,
+		m.Subject,
+	))
 }
 
 type Mail struct {
 	Id        int
+	Uid       uint32
 	Threadid  int
-	Account   string
 	Subject   string
+	Flags     []string
 	MessageId string
 	Mailbox   string
 	InReplyTo string
-	Date      string
+	Date      time.Time
+	Header    *mail.Header
 }
 
 func (m *Mail) hasParent(tx *sql.Tx) (int, error) {
@@ -56,17 +67,20 @@ func (m *Mail) hasChild(tx *sql.Tx) (int, error) {
 }
 
 func (m *Mail) InsertInto(r ndb.Execer, mailbox, accname string) error {
-	_, err := r.Exec(`INSERT INTO mail (subject, messageid, inreplyto, date, threadid, account, mailbox)
-SELECT ?, ?, ?, ?, ?, account.id, mailbox.id
+	_, err := r.Exec(`INSERT INTO mail (subject, messageid, inreplyto, date, threadid, uid, flags, account, mailbox)
+SELECT ?, ?, ?, ?, ?, ?, ?, account.id, mailbox.id
 FROM
   mailbox
   JOIN account on account.id = mailbox.account
-WHERE mailbox.name = ? AND account.name = ?`,
+WHERE mailbox.name = ? AND account.name = ?
+ON CONFLICT (uid, mailbox) DO UPDATE SET flags=excluded.flags`,
 		m.Subject,
 		m.MessageId,
 		m.InReplyTo,
 		m.Date,
 		m.Threadid,
+		m.Uid,
+		strings.Join(m.Flags, ","),
 		mailbox,
 		accname,
 	)
@@ -147,4 +161,37 @@ func (m *Mail) UpdateThreadid(tx *sql.Tx) error {
 	}
 
 	return nil
+}
+
+func AllThreads(r ndb.Queryer, mailbox, accname string) ([]*Thread, error) {
+	rows, err := r.Query(`SELECT m.threadid, max(m.subject), max(m.date), count(m.id)
+FROM
+  mail m
+  JOIN mailbox mbox ON mbox.id = m.mailbox
+  JOIN account a ON a.id = m.account AND a.id = mbox.account
+WHERE
+  a.name = ? AND
+  mbox.name = ?
+GROUP BY 1
+	`, accname, mailbox)
+	if err != nil {
+		return nil, err
+	}
+	result := make([]*Thread, 0)
+	for rows.Next() {
+		var threadid sql.NullInt32
+		var subject string
+		var date DateFromStr
+		var count int
+		err = rows.Scan(&threadid, &subject, &date, &count)
+		if err != nil {
+			return nil, err
+		}
+		t := &Thread{Subject: subject, Date: date.T, Count: count}
+		if threadid.Valid {
+			t.Id = int(threadid.Int32)
+		}
+		result = append(result, t)
+	}
+	return result, nil
 }

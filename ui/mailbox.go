@@ -70,6 +70,7 @@ func NewMailboxView(accountName string, onSelect func(accname string, t *models.
 
 func (mv *MailboxView) SetThreads(threads []*models.Thread) {
 	mv.machine.Send(&lib.Event{TR_SET_THREADS, threads})
+	mv.ClearLines()
 	for _, t := range threads {
 		mv.AddLine(t)
 	}
