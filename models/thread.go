@@ -4,6 +4,8 @@ import (
 	"database/sql"
 
 	"github.com/pkg/errors"
+
+	ndb "github.com/stregouet/nuntius/database"
 )
 
 type Thread struct {
@@ -53,15 +55,20 @@ func (m *Mail) hasChild(tx *sql.Tx) (int, error) {
 	}
 }
 
-func (m *Mail) InsertInto(tx *sql.Tx) error {
-	_, err := tx.Exec(
-		"INSERT INTO mail (subject, threadid, messageid, mailbox, inreplyto, date) VALUES (?, ?, ?, ?, ?, ?)",
+func (m *Mail) InsertInto(r ndb.Execer, mailbox, accname string) error {
+	_, err := r.Exec(`INSERT INTO mail (subject, messageid, inreplyto, date, threadid, account, mailbox)
+SELECT ?, ?, ?, ?, ?, account.id, mailbox.id
+FROM
+  mailbox
+  JOIN account on account.id = mailbox.account
+WHERE mailbox.name = ? AND account.name = ?`,
 		m.Subject,
-		m.Threadid,
 		m.MessageId,
-		m.Mailbox,
 		m.InReplyTo,
 		m.Date,
+		m.Threadid,
+		mailbox,
+		accname,
 	)
 	return err
 }

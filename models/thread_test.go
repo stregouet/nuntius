@@ -13,6 +13,11 @@ import (
 	_ "github.com/stregouet/nuntius/database/migrations"
 )
 
+const (
+	FAKE_ACC = "fakeacc"
+	FAKE_MBOX = "inbox"
+)
+
 func setupdb(t *testing.T) (*sql.DB, error) {
 	tmpfile, err := ioutil.TempFile("", "nuntius-test-*.db")
 	if err != nil {
@@ -40,6 +45,13 @@ func setupdb(t *testing.T) (*sql.DB, error) {
 	if err != nil {
 		return nil, err
 	}
+
+	_, err = tx.Exec("insert into account (name) values (?)", FAKE_ACC)
+	if err != nil {
+		return nil, err
+	}
+	m := Mailbox{Name: FAKE_MBOX}
+	m.InsertInto(tx, FAKE_ACC)
 	err = tx.Commit()
 	if err != nil {
 		return nil, err
@@ -87,7 +99,7 @@ func TestThreadidAttribution(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		err = m.InsertInto(tx)
+		err = m.InsertInto(tx, FAKE_MBOX, FAKE_ACC)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -154,7 +166,7 @@ func TestThreadidAttributionOrder1(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		err = m.InsertInto(tx)
+		err = m.InsertInto(tx, FAKE_MBOX, FAKE_ACC)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -230,7 +242,7 @@ func TestThreadidAttributionOrder2(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		err = m.InsertInto(tx)
+		err = m.InsertInto(tx, FAKE_MBOX, FAKE_ACC)
 		if err != nil {
 			t.Fatal(err)
 		}
