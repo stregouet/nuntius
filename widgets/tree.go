@@ -117,21 +117,22 @@ func (t *TreeWidget) onSelect() {
 	t.OnSelect(t.lines[t.selected-1])
 }
 
-func (t *TreeWidget) HandleEvent(ev tcell.Event) {
+func (t *TreeWidget) HandleEvent(ev tcell.Event) bool {
 	switch ev := ev.(type) {
 	case *tcell.EventKey:
 		switch ev.Key() {
 		case tcell.KeyUp, tcell.KeyCtrlP:
 			t.selected = max(t.selected-1, 1)
 			t.AskRedraw()
-			return
+			return true
 		case tcell.KeyDown, tcell.KeyCtrlN:
 			t.selected = min(t.selected+1, len(t.lines))
 			t.AskRedraw()
-			return
+			return true
 		case tcell.KeyEnter:
 			t.onSelect()
-			return
+			return true
 		}
 	}
+	return false
 }

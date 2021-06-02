@@ -6,7 +6,7 @@ import (
 )
 
 type Widget interface {
-	HandleEvent(ev tcell.Event)
+	HandleEvent(ev tcell.Event) bool
 	Draw()
 	SetViewPort(view *views.ViewPort)
 	GetViewPort() *views.ViewPort

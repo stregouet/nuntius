@@ -68,23 +68,24 @@ func (l *ListWidget) Draw() {
 	}
 }
 
-func (l *ListWidget) HandleEvent(ev tcell.Event) {
+func (l *ListWidget) HandleEvent(ev tcell.Event) bool {
 	switch ev := ev.(type) {
 	case *tcell.EventKey:
 		switch ev.Key() {
 		case tcell.KeyUp, tcell.KeyCtrlP:
 			l.selected = max(l.selected-1, 1)
 			l.AskRedraw()
-			return
+			return true
 		case tcell.KeyDown, tcell.KeyCtrlN:
 			l.selected = min(l.selected+1, len(l.lines))
 			l.AskRedraw()
-			return
+			return true
 		case tcell.KeyEnter:
 			l.onSelect()
-			return
+			return true
 		}
 	}
+	return false
 }
 
 func (l *ListWidget) onSelect() {

@@ -88,7 +88,7 @@ func (mv *MailboxView) Draw() {
 	}
 }
 
-func (mv *MailboxView) HandleEvent(ev tcell.Event) {
+func (mv *MailboxView) HandleEvent(ev tcell.Event) bool {
 	switch ev := ev.(type) {
 	case *tcell.EventKey:
 		switch ev.Key() {
@@ -96,9 +96,9 @@ func (mv *MailboxView) HandleEvent(ev tcell.Event) {
 			switch ev.Rune() {
 			case 'Q', 'q':
 				App.Stop()
-				return
+				return true
 			}
 		}
 	}
-	mv.ListWidget.HandleEvent(ev)
+	return mv.ListWidget.HandleEvent(ev)
 }
