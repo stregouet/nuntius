@@ -1,8 +1,8 @@
 package imap
 
 import (
-    "github.com/emersion/go-imap"
-    "github.com/emersion/go-imap/client"
+	"github.com/emersion/go-imap"
+	"github.com/emersion/go-imap/client"
 )
 
 func toSeqSet(uids []uint32) *imap.SeqSet {
@@ -37,5 +37,5 @@ func fetch(c *client.Client, uids []uint32, items []imap.FetchItem, cb func(*ima
 	if err := <-done; err != nil {
 		return err
 	}
-    return nil
+	return nil
 }

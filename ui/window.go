@@ -9,16 +9,16 @@ import (
 
 	"github.com/stregouet/nuntius/config"
 	"github.com/stregouet/nuntius/lib"
-	sm "github.com/stregouet/nuntius/statesmachines"
 	"github.com/stregouet/nuntius/models"
+	sm "github.com/stregouet/nuntius/statesmachines"
 	"github.com/stregouet/nuntius/workers"
 )
 
 type Window struct {
 	screen tcell.Screen
 
-	machine *lib.Machine
-	ex      *Status
+	machine  *lib.Machine
+	ex       *Status
 	bindings config.Keybindings
 
 	triggerRedraw atomic.Value // bool
@@ -26,9 +26,9 @@ type Window struct {
 
 func NewWindow(cfg []*config.Account, bindings config.Keybindings) *Window {
 	w := &Window{
-		machine: sm.NewWindowMachine(),
+		machine:  sm.NewWindowMachine(),
 		bindings: bindings,
-		ex:      NewStatus("ici c'est pour les commandes"),
+		ex:       NewStatus("ici c'est pour les commandes"),
 	}
 	w.machine.OnTransition(func(s *lib.State, ev *lib.Event) {
 		if ev.Transition == sm.TR_CLOSE_APP {
@@ -162,7 +162,7 @@ func (w *Window) Draw() {
 	width, _ := w.screen.Size()
 	styleBase := tcell.StyleDefault
 	styleRev := styleBase.Reverse(true)
-	for x := 0 ; x <= width ; x++ {
+	for x := 0; x <= width; x++ {
 		w.screen.SetContent(x, 0, ' ', nil, styleBase)
 		w.screen.SetContent(x, 1, '─', nil, styleBase)
 	}
@@ -174,7 +174,7 @@ func (w *Window) Draw() {
 			style = styleRev
 		}
 		for x, runec := range t.Title {
-			w.screen.SetContent(offset + x, 0, runec, nil, style)
+			w.screen.SetContent(offset+x, 0, runec, nil, style)
 		}
 		offset += len(t.Title) + 1
 	}
@@ -192,7 +192,7 @@ func (w *Window) HandleEvent(ev tcell.Event) bool {
 		if cmd := w.bindings[config.KEY_MODE_GLOBAL].FindCommand(ks); cmd != "" {
 			// this is global command, so window should try to handle it
 			machineEv, err := w.machine.BuildEvent(cmd)
-			if err != nil || machineEv == nil{
+			if err != nil || machineEv == nil {
 				App.logger.Errorf("error building machine event from `%s` (%v)", cmd, err)
 				return false
 			}

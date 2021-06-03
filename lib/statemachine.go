@@ -50,9 +50,9 @@ type Machine struct {
 
 func NewMachine(ctx interface{}, initial StateType, states States) *Machine {
 	return &Machine{
-		Context: ctx,
-		States: states,
-		Current: initial,
+		Context:             ctx,
+		States:              states,
+		Current:             initial,
 		transitionListeners: make(map[int]StateListener),
 	}
 }

@@ -3,14 +3,14 @@ package database
 import "database/sql"
 
 type Execer interface {
-    Exec(query string, args ...interface{}) (sql.Result, error)
+	Exec(query string, args ...interface{}) (sql.Result, error)
 }
 
 type Queryer interface {
-    Query(query string, args ...interface{}) (*sql.Rows, error)
+	Query(query string, args ...interface{}) (*sql.Rows, error)
 }
 
 type BaseRunner interface {
-    Execer
-    Queryer
+	Execer
+	Queryer
 }

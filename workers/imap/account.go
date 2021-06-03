@@ -23,11 +23,11 @@ import (
 var PARSE_IMAP_ERR = errors.New("error parsing mail from imap server")
 
 type Account struct {
-	cfg      *config.Account
-	requests chan workers.Message
-	c        *client.Client
+	cfg          *config.Account
+	requests     chan workers.Message
+	c            *client.Client
 	selectedMbox *models.Mailbox
-	logger   *lib.Logger
+	logger       *lib.Logger
 }
 
 func NewAccount(l *lib.Logger, c *config.Account) *Account {
@@ -74,10 +74,10 @@ func (a *Account) selectMbox(mailbox string) error {
 		return err
 	}
 	a.selectedMbox = &models.Mailbox{
-		Name: mailbox,
+		Name:     mailbox,
 		ReadOnly: res.ReadOnly,
-		Count: res.Messages,
-		Unseen: res.Unseen,
+		Count:    res.Messages,
+		Unseen:   res.Unseen,
 	}
 	return nil
 }
@@ -98,7 +98,7 @@ func (a *Account) Run(responses chan<- workers.Message) {
 				r = &workers.Error{Error: errors.New("error requesting imap server")}
 			} else {
 				r = &workers.MsgToDb{Wrapped: &workers.FetchMailboxesImapRes{
-					Mailboxes:result,
+					Mailboxes: result,
 				}}
 			}
 			postResponse(r, msg.GetId())
@@ -120,7 +120,7 @@ func (a *Account) Run(responses chan<- workers.Message) {
 			} else {
 				r = &workers.MsgToDb{Wrapped: &workers.FetchMailboxImapRes{
 					Mailbox: msg.Mailbox,
-					Mails:result,
+					Mails:   result,
 				}}
 			}
 			postResponse(r, msg.GetId())
@@ -128,14 +128,13 @@ func (a *Account) Run(responses chan<- workers.Message) {
 	}
 }
 
-
 func (a *Account) handleFetchMailbox(mailbox string) ([]*models.Mail, error) {
 	err := a.selectMbox(mailbox)
 	if err != nil {
 		return nil, err
 	}
 	criteria := imap.NewSearchCriteria()
-	criteria.Since = time.Now().Add(-48*time.Hour)
+	criteria.Since = time.Now().Add(-48 * time.Hour)
 	uids, err := a.c.UidSearch(criteria)
 	if err != nil {
 		return nil, err
@@ -180,13 +179,13 @@ func (a *Account) handleFetchMailbox(mailbox string) ([]*models.Mail, error) {
 		}
 
 		mail := &models.Mail{
-			Subject: m.Envelope.Subject,
+			Subject:   m.Envelope.Subject,
 			InReplyTo: inreply,
 			MessageId: msgid,
-			Date: m.Envelope.Date,
-			Flags: m.Flags,
-			Uid: m.Uid,
-			Header: header,
+			Date:      m.Envelope.Date,
+			Flags:     m.Flags,
+			Uid:       m.Uid,
+			Header:    header,
 		}
 		result = append(result, mail)
 		return nil
@@ -221,9 +220,9 @@ func (a *Account) handleFetchMailboxes(msg *workers.FetchMailboxes) ([]*models.M
 			continue
 		}
 		parts := strings.Split(m.Name, m.Delimiter)
-		shortName := parts[len(parts) - 1]
+		shortName := parts[len(parts)-1]
 		if len(parts) > 1 {
-			parent = parts[len(parts) - 2]
+			parent = parts[len(parts)-2]
 		}
 		mbox := models.Mailbox{Name: m.Name, ShortName: shortName, Parent: parent}
 		result = append(result, &mbox)

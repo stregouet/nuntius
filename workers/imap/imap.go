@@ -3,14 +3,13 @@ package imap
 import (
 	"github.com/pkg/errors"
 
-    "github.com/stregouet/nuntius/config"
-    "github.com/stregouet/nuntius/lib"
-    "github.com/stregouet/nuntius/workers"
+	"github.com/stregouet/nuntius/config"
+	"github.com/stregouet/nuntius/lib"
+	"github.com/stregouet/nuntius/workers"
 )
 
-
 type ImapWorker struct {
-    Accounts map[string]*Account
+	Accounts  map[string]*Account
 	requests  chan workers.Message
 	responses chan workers.Message
 
@@ -25,16 +24,16 @@ func NewImapWorker(l *lib.Logger, cfg []*config.Account) *ImapWorker {
 	return &ImapWorker{
 		requests:  make(chan workers.Message, 10),
 		responses: make(chan workers.Message, 10),
-		Accounts: accounts,
-		logger: l,
+		Accounts:  accounts,
+		logger:    l,
 	}
 }
 
 func (iw *ImapWorker) Responses() <-chan workers.Message {
-    return iw.responses
+	return iw.responses
 }
 func (iw *ImapWorker) PostMessage(m workers.Message) {
-    iw.requests <- m
+	iw.requests <- m
 }
 
 func (iw *ImapWorker) terminate() {
@@ -46,7 +45,6 @@ func (iw *ImapWorker) postResponse(msg workers.Message, id int) {
 	msg.SetId(id)
 	iw.responses <- msg
 }
-
 
 func (iw *ImapWorker) Run() {
 	for _, acc := range iw.Accounts {

@@ -10,11 +10,10 @@ import (
 	"github.com/stregouet/nuntius/widgets"
 )
 
-
 type MailboxesView struct {
 	machine     *lib.Machine
 	accountName string
-	bindings     config.Mapping
+	bindings    config.Mapping
 	*widgets.TreeWidget
 }
 
@@ -27,7 +26,7 @@ func NewMailboxesView(accountName string, bindings config.Mapping, onSelect func
 	return &MailboxesView{
 		machine:     sm.NewMailboxesMachine(),
 		accountName: accountName,
-		bindings: bindings,
+		bindings:    bindings,
 		TreeWidget:  t,
 	}
 }

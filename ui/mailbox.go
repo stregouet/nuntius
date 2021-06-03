@@ -1,7 +1,5 @@
 package ui
 
-
-
 import (
 	"github.com/gdamore/tcell/v2"
 
@@ -11,20 +9,18 @@ import (
 	"github.com/stregouet/nuntius/widgets"
 )
 
-
 type MailboxView struct {
-    machine *lib.Machine
+	machine *lib.Machine
 	*widgets.ListWidget
 }
 
 func NewMailboxView(accountName string, onSelect func(accname string, t *models.Thread)) *MailboxView {
 	l := widgets.NewList()
 	return &MailboxView{
-		machine:     sm.NewMailboxMachine(),
-		ListWidget:  l,
+		machine:    sm.NewMailboxMachine(),
+		ListWidget: l,
 	}
 }
-
 
 func (mv *MailboxView) SetThreads(threads []*models.Thread) {
 	mv.machine.Send(&lib.Event{sm.TR_SET_THREADS, threads})

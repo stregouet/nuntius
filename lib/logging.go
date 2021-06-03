@@ -31,7 +31,6 @@ func (l Level) ToString() string {
 	}
 }
 
-
 func LogParseLevel(lvl string) (Level, error) {
 	var l Level
 	switch strings.ToLower(lvl) {
@@ -75,13 +74,11 @@ func (l *Logger) isEnable(lvl Level) bool {
 	return lvl >= l.lvl
 }
 
-
-
 func (l *Logger) output(lvl Level, msg string) {
 	if !l.isEnable(lvl) {
 		return
 	}
-	l.Output(3, "level=" + lvl.ToString() + " " + msg)
+	l.Output(3, "level="+lvl.ToString()+" "+msg)
 }
 
 func (l *Logger) Debugf(msg string, args ...interface{}) {

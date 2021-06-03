@@ -3,8 +3,8 @@ package main
 import (
 	"fmt"
 	"log"
-	"runtime/debug"
 	"os"
+	"runtime/debug"
 
 	_ "github.com/mattn/go-sqlite3"
 	"github.com/pkg/errors"

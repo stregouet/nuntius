@@ -21,7 +21,7 @@ type Status struct {
 
 func NewStatus(msg string) *Status {
 	s := &Status{
-		Text: &widgets.Text{},
+		Text:       &widgets.Text{},
 		tmpContent: lib.NewConcurrentList(make([]interface{}, 0)),
 	}
 	s.SetContent(msg)

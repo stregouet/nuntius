@@ -33,7 +33,6 @@ func (l *ListWidget) ClearLines() {
 	l.lines = make([]IRune, 0)
 }
 
-
 func max(a, b int) int {
 	if a > b {
 		return a

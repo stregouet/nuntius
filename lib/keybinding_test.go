@@ -18,14 +18,14 @@ func TestParseKeyStroke(t *testing.T) {
 			expected: []*KeyStroke{&KeyStroke{tcell.KeyCtrlSpace, 0}},
 		},
 		{
-			input:    "space a",
+			input: "space a",
 			expected: []*KeyStroke{
 				&KeyStroke{tcell.KeyRune, ' '},
 				&KeyStroke{tcell.KeyRune, 'a'},
 			},
 		},
 		{
-			input:    "space ;",
+			input: "space ;",
 			expected: []*KeyStroke{
 				&KeyStroke{tcell.KeyRune, ' '},
 				&KeyStroke{tcell.KeyRune, ';'},

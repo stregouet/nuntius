@@ -14,7 +14,7 @@ import (
 )
 
 const (
-	FAKE_ACC = "fakeacc"
+	FAKE_ACC  = "fakeacc"
 	FAKE_MBOX = "inbox"
 )
 

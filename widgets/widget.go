@@ -23,7 +23,7 @@ type Widget interface {
 
 type BaseWidget struct {
 	redrawCb func()
-	view    *views.ViewPort
+	view     *views.ViewPort
 }
 
 func (b *BaseWidget) SetContent(x int, y int, mainc rune, combc []rune, style tcell.Style) {
@@ -43,7 +43,7 @@ func (b *BaseWidget) Clear() {
 func (b *BaseWidget) AskingRedraw(f func()) {
 	b.redrawCb = f
 }
-func (b* BaseWidget) AskRedraw() {
+func (b *BaseWidget) AskRedraw() {
 	b.Clear()
 	if b.redrawCb != nil {
 		b.redrawCb()

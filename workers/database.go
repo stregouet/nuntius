@@ -129,7 +129,6 @@ func (d *Database) handleMessage(db *sql.DB, msg Message) {
 	}
 }
 
-
 func (d *Database) handleFetchMailboxes(db *sql.DB, accountname string) ([]*models.Mailbox, error) {
 	_, err := db.Exec("insert into account (name) values (?) on conflict (name) do nothing", accountname)
 	if err != nil {
@@ -141,7 +140,6 @@ func (d *Database) handleFetchMailboxes(db *sql.DB, accountname string) ([]*mode
 	}
 	return rows, nil
 }
-
 
 func (d *Database) handleFetchMailboxImap(db *sql.DB, msg *FetchMailboxImapRes) ([]*models.Thread, error) {
 	tx, err := db.Begin()

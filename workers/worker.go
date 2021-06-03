@@ -1,26 +1,25 @@
 package workers
 
-
 type Worker interface {
-    Responses() <-chan Message
-    PostMessage(m Message)
-    Run()
-    Close()
+	Responses() <-chan Message
+	PostMessage(m Message)
+	Run()
+	Close()
 }
 
 type BaseWorker struct {
-    requests chan Message
-    responses chan Message
+	requests  chan Message
+	responses chan Message
 }
 
 func (bw *BaseWorker) Responses() <-chan Message {
-    return bw.responses
+	return bw.responses
 }
 
 func (bw *BaseWorker) PostMessage(m Message) {
-    bw.requests <- m
+	bw.requests <- m
 }
 
 func (bw *BaseWorker) Close() {
-    close(bw.requests)
+	close(bw.requests)
 }

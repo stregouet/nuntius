@@ -15,23 +15,22 @@ import (
 
 var App *Application
 
-
 type PostCallback func(res workers.Message) error
 
 type Application struct {
-	exit     atomic.Value // bool
-	logger   *lib.Logger
-	screen   tcell.Screen
-	window   *Window
+	exit   atomic.Value // bool
+	logger *lib.Logger
+	screen tcell.Screen
+	window *Window
 	// style    tcell.Style
 	tcEvents chan tcell.Event
-	cbId int
-	done chan struct{}
+	cbId     int
+	done     chan struct{}
 
-	dbcallbacks map[int]PostCallback
+	dbcallbacks   map[int]PostCallback
 	imapcallbacks map[int]PostCallback
 
-	db *workers.Database
+	db   *workers.Database
 	imap *imap.ImapWorker
 }
 
@@ -46,14 +45,14 @@ func InitApp(l *lib.Logger, cfg *config.Config) error {
 			Foreground(tcell.ColorWhite).
 			Background(tcell.ColorBlack))
 		App = &Application{
-			logger: l,
-			tcEvents: make(chan tcell.Event, 10),
-			dbcallbacks: make(map[int]PostCallback),
+			logger:        l,
+			tcEvents:      make(chan tcell.Event, 10),
+			dbcallbacks:   make(map[int]PostCallback),
 			imapcallbacks: make(map[int]PostCallback),
-			db: workers.NewDatabase(l),
-			imap: imap.NewImapWorker(l, cfg.Accounts),
-			done: make(chan struct{}),
-			screen: screen,
+			db:            workers.NewDatabase(l),
+			imap:          imap.NewImapWorker(l, cfg.Accounts),
+			done:          make(chan struct{}),
+			screen:        screen,
 		}
 		w := NewWindow(cfg.Accounts, cfg.Keybindings)
 		w.SetScreen(screen)
@@ -63,7 +62,6 @@ func InitApp(l *lib.Logger, cfg *config.Config) error {
 	}
 	return errors.New("InitApp should be called only once")
 }
-
 
 // func (app *Application) SetStyle(style tcell.Style) {
 // 	app.style = style
@@ -122,7 +120,6 @@ func (app *Application) tick() bool {
 	return more
 }
 
-
 func (app *Application) PostDbMessage(msg workers.Message, accountname string, f PostCallback) {
 	app.cbId++
 	msg.SetId(app.cbId)
@@ -152,8 +149,6 @@ func (app *Application) PostMessage(m workers.Message, accountname string, f Pos
 		return nil
 	})
 }
-
-
 
 func (app *Application) Run() {
 	if err := app.initialize(); err != nil {
