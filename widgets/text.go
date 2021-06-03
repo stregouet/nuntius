@@ -2,6 +2,8 @@ package widgets
 
 import (
 	"github.com/gdamore/tcell/v2"
+
+	"github.com/stregouet/nuntius/lib"
 )
 
 type Text struct {
@@ -23,18 +25,15 @@ func (t *Text) Draw() {
 		t.view.SetContent(i, 0, ch, nil, style)
 	}
 }
-func (t *Text) HandleEvent(ev tcell.Event) bool {
-	switch ev := ev.(type) {
-	case *tcell.EventKey:
-		switch ev.Key() {
-		case tcell.KeyRight:
-			t.AskRedraw()
-			return true
-		case tcell.KeyLeft:
-			t.view.ScrollLeft(1)
-			t.AskRedraw()
-			return true
-		}
+func (t *Text) HandleEvent(ks []*lib.KeyStroke) bool {
+	switch ks[0].Key {
+	case tcell.KeyRight:
+		t.AskRedraw()
+		return true
+	case tcell.KeyLeft:
+		t.view.ScrollLeft(1)
+		t.AskRedraw()
+		return true
 	}
 	return false
 }

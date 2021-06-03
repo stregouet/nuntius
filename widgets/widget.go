@@ -3,10 +3,12 @@ package widgets
 import (
 	"github.com/gdamore/tcell/v2"
 	"github.com/gdamore/tcell/v2/views"
+
+	"github.com/stregouet/nuntius/lib"
 )
 
 type Widget interface {
-	HandleEvent(ev tcell.Event) bool
+	HandleEvent(ks []*lib.KeyStroke) bool
 	Draw()
 	SetViewPort(view *views.ViewPort)
 	GetViewPort() *views.ViewPort

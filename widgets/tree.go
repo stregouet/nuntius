@@ -2,6 +2,8 @@ package widgets
 
 import (
 	"github.com/gdamore/tcell/v2"
+
+	"github.com/stregouet/nuntius/lib"
 )
 
 const ARROW = '➤'
@@ -117,22 +119,19 @@ func (t *TreeWidget) onSelect() {
 	t.OnSelect(t.lines[t.selected-1])
 }
 
-func (t *TreeWidget) HandleEvent(ev tcell.Event) bool {
-	switch ev := ev.(type) {
-	case *tcell.EventKey:
-		switch ev.Key() {
-		case tcell.KeyUp, tcell.KeyCtrlP:
-			t.selected = max(t.selected-1, 1)
-			t.AskRedraw()
-			return true
-		case tcell.KeyDown, tcell.KeyCtrlN:
-			t.selected = min(t.selected+1, len(t.lines))
-			t.AskRedraw()
-			return true
-		case tcell.KeyEnter:
-			t.onSelect()
-			return true
-		}
+func (t *TreeWidget) HandleEvent(ks []*lib.KeyStroke) bool {
+	switch ks[0].Key {
+	case tcell.KeyUp, tcell.KeyCtrlP:
+		t.selected = max(t.selected-1, 1)
+		t.AskRedraw()
+		return true
+	case tcell.KeyDown, tcell.KeyCtrlN:
+		t.selected = min(t.selected+1, len(t.lines))
+		t.AskRedraw()
+		return true
+	case tcell.KeyEnter:
+		t.onSelect()
+		return true
 	}
 	return false
 }

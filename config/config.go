@@ -26,6 +26,7 @@ type Config struct {
         Output string
     }
     Accounts []*Account
+    Keybindings Keybindings
 }
 
 func (c *Config) uniqueAccountName() error {
@@ -49,6 +50,9 @@ func (c *Config) Validate() error {
         return errors.New("need at least one account")
     }
     if err = c.uniqueAccountName(); err != nil {
+        return err
+    }
+    if err = c.Keybindings.Validate(); err != nil {
         return err
     }
     return nil

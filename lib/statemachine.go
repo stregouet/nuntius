@@ -1,5 +1,9 @@
 package lib
 
+import (
+	"strings"
+)
+
 // mix of xstate and https://venilnoronha.io/a-simple-state-machine-framework-in-go
 
 type Transition struct {
@@ -53,6 +57,25 @@ func NewMachine(ctx interface{}, initial StateType, states States) *Machine {
 	}
 }
 
+func (t TransitionType) ToCmd() string {
+	return strings.ToLower(strings.ReplaceAll(string(t), "_", "-"))
+}
+
+func (m *Machine) BuildEvent(cmd string) (*Event, error) {
+	command, err := ParseCmd(cmd)
+	if err != nil {
+		return nil, err
+	}
+	for _, state := range m.States {
+		for trtype, _ := range state.Transitions {
+			if trtype.ToCmd() == command.Name {
+				return &Event{trtype, command.Args}, nil
+			}
+		}
+	}
+	return nil, nil
+}
+
 func (m *Machine) OnTransition(f StateListener) int {
 	m.listenerId++
 	m.transitionListeners[m.listenerId] = f
@@ -68,7 +91,7 @@ func (m *Machine) callListeners(current *State, ev *Event) {
 	}
 }
 
-func (m *Machine) Send(ev *Event) {
+func (m *Machine) Send(ev *Event) bool {
 	current := m.States[m.Current]
 	if tr, ok := current.Transitions[ev.Transition]; ok {
 		if current.Exit != nil {
@@ -83,6 +106,8 @@ func (m *Machine) Send(ev *Event) {
 			tr.Action(m.Context, ev)
 		}
 		m.callListeners(nextState, ev)
+		return true
 	}
+	return false
 
 }

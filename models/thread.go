@@ -12,6 +12,7 @@ import (
 	ndb "github.com/stregouet/nuntius/database"
 )
 
+// XXX rename to ThreadInfo?
 type Thread struct {
 	Id      int
 	Subject string

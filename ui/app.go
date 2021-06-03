@@ -55,7 +55,7 @@ func InitApp(l *lib.Logger, cfg *config.Config) error {
 			done: make(chan struct{}),
 			screen: screen,
 		}
-		w := NewWindow(cfg.Accounts)
+		w := NewWindow(cfg.Accounts, cfg.Keybindings)
 		w.SetScreen(screen)
 		App.window = w
 		App.exit.Store(false)
@@ -113,7 +113,7 @@ func (app *Application) tick() bool {
 			// XXX propagate resize to window?
 			return true
 		}
-		app.window.TabHandleEvent(tev)
+		app.window.HandleEvent(tev)
 	default:
 		if app.window.ShouldRedraw() {
 			app.window.Redraw()
@@ -173,6 +173,7 @@ func (app *Application) Run() {
 	defer app.Close()
 	app.window.Draw()
 	app.screen.Show()
+
 	for {
 		select {
 		case <-app.done:

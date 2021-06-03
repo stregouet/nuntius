@@ -19,6 +19,7 @@ const (
 	TR_CLOSE_TAB   lib.TransitionType = "CLOSE_TAB"
 	TR_NEXT_TAB    lib.TransitionType = "NEXT_TAB"
 	TR_PREV_TAB    lib.TransitionType = "PREV_TAB"
+	TR_CLOSE_APP   lib.TransitionType = "CLOSE_APP"
 
 	STATE_WRITE_CMD  lib.StateType      = "WRITE_CMD"
 	TR_START_WRITING lib.TransitionType = "START_WRITING"
@@ -41,6 +42,12 @@ func buildWindowMachine() *lib.Machine {
 		lib.States{
 			STATE_SHOW_TAB: &lib.State{
 				Transitions: lib.Transitions{
+					TR_CLOSE_APP: &lib.Transition{
+						Target: STATE_SHOW_TAB,
+						Action: func(c interface{}, ev *lib.Event) {
+							App.Stop()
+						},
+					},
 					TR_OPEN_TAB: &lib.Transition{
 						Target: STATE_SHOW_TAB,
 						Action: func(c interface{}, ev *lib.Event) {
@@ -50,8 +57,29 @@ func buildWindowMachine() *lib.Machine {
 							wmc.selectedTab = len(wmc.tabs) - 1
 						},
 					},
-					TR_CLOSE_TAB:     &lib.Transition{Target: STATE_SHOW_TAB},
-					TR_NEXT_TAB:      &lib.Transition{Target: STATE_SHOW_TAB},
+					TR_CLOSE_TAB:     &lib.Transition{
+						Target: STATE_SHOW_TAB,
+						Action: func(c interface{}, ev *lib.Event) {
+							wmc := c.(*WindowMachineCtx)
+							if len(wmc.tabs) == 1 {
+								return
+							}
+							i := wmc.selectedTab
+							wmc.tabs = append(wmc.tabs[:i], wmc.tabs[i+1:]...)
+							wmc.selectedTab = 0
+						},
+					},
+					TR_NEXT_TAB:      &lib.Transition{
+						Target: STATE_SHOW_TAB,
+						Action: func(c interface{}, ev *lib.Event) {
+							wmc := c.(*WindowMachineCtx)
+							next := wmc.selectedTab + 1
+							if next >= len(wmc.tabs) {
+								next = 0
+							}
+							wmc.selectedTab = next
+						},
+					},
 					TR_PREV_TAB:      &lib.Transition{Target: STATE_SHOW_TAB},
 					TR_START_WRITING: &lib.Transition{Target: STATE_WRITE_CMD},
 				},
@@ -71,18 +99,24 @@ type Window struct {
 
 	machine *lib.Machine
 	ex      *Status
+	bindings config.Keybindings
 
 	triggerRedraw atomic.Value // bool
 }
 
-func NewWindow(cfg []*config.Account) *Window {
+func NewWindow(cfg []*config.Account, bindings config.Keybindings) *Window {
 	w := &Window{
 		machine: buildWindowMachine(),
+		bindings: bindings,
 		ex:      NewStatus("ici c'est pour les commandes"),
 	}
 	w.machine.OnTransition(func(s *lib.State, ev *lib.Event) {
-		if ev.Transition == TR_OPEN_TAB {
+		switch ev.Transition {
+		case TR_OPEN_TAB:
 			w.onOpenTab(s, ev)
+		case TR_NEXT_TAB, TR_CLOSE_TAB:
+			w.screen.Clear()
+			w.AskRedraw()
 		}
 	})
 	w.ex.AskingRedraw(func() {
@@ -101,7 +135,7 @@ func NewWindow(cfg []*config.Account) *Window {
 				return nil
 			},
 		)
-		accwidget := NewMailboxesView(c.Name, w.onSelectMailbox)
+		accwidget := NewMailboxesView(c.Name, w.bindings[config.KEY_MODE_MBOXES], w.onSelectMailbox)
 		App.PostMessage(
 			&workers.FetchMailboxes{},
 			c.Name,
@@ -223,10 +257,30 @@ func (w *Window) Draw() {
 	s.tabs[s.selectedTab].Content.Draw()
 	w.ex.Draw()
 }
-func (w *Window) TabHandleEvent(ev tcell.Event) {
-	s := w.state()
-	s.tabs[s.selectedTab].Content.HandleEvent(ev)
-}
-func (w *Window) ExHandleEvent(ev tcell.Event) {
-	w.ex.HandleEvent(ev)
+
+func (w *Window) HandleEvent(ev tcell.Event) bool {
+	ks := []*lib.KeyStroke{lib.KeyStrokeFromEvent(ev)}
+	if w.machine.Current == STATE_WRITE_CMD {
+		// in write_cmd state always forward event to ex
+		return w.ex.HandleEvent(ks)
+	} else {
+		// first check if this event refer toa global command
+		if cmd := w.bindings[config.KEY_MODE_GLOBAL].FindCommand(ks); cmd != "" {
+			// this is global command, so window should try to handle it
+			machineEv, err := w.machine.BuildEvent(cmd)
+			if err != nil || machineEv == nil{
+				App.logger.Errorf("error building machine event from `%s` (%v)", cmd, err)
+				return false
+			}
+			App.logger.Debugf("machineEvent %#v", machineEv)
+			if w.machine.Send(machineEv) {
+				return true
+			}
+		}
+		// either not a global command or this tcell event does not translate
+		// to an application machine event
+		s := w.state()
+		return s.tabs[s.selectedTab].Content.HandleEvent(ks)
+	}
+	return false
 }

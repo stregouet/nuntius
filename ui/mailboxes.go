@@ -3,11 +3,13 @@ package ui
 import (
 	"github.com/gdamore/tcell/v2"
 
+	"github.com/stregouet/nuntius/config"
 	"github.com/stregouet/nuntius/lib"
 	"github.com/stregouet/nuntius/models"
 	"github.com/stregouet/nuntius/widgets"
 )
 
+// à déplacer dans nuntius/statemachines/mailboxes.go (package machines)
 const (
 	STATE_LOAD_MBOXES lib.StateType      = "LOAD_MBOXES"
 	STATE_SHOW_MBOXES lib.StateType      = "SHOW_MBOXES"
@@ -74,10 +76,11 @@ func buildMailboxesMachine() *lib.Machine {
 type MailboxesView struct {
 	machine     *lib.Machine
 	accountName string
+	bindings     config.Mapping
 	*widgets.TreeWidget
 }
 
-func NewMailboxesView(accountName string, onSelect func(accname string, m *models.Mailbox)) *MailboxesView {
+func NewMailboxesView(accountName string, bindings config.Mapping, onSelect func(accname string, m *models.Mailbox)) *MailboxesView {
 	t := widgets.NewTree()
 	t.OnSelect = func(line widgets.ITreeLine) {
 		m := line.(*models.Mailbox)
@@ -86,6 +89,7 @@ func NewMailboxesView(accountName string, onSelect func(accname string, m *model
 	return &MailboxesView{
 		machine:     buildMailboxesMachine(),
 		accountName: accountName,
+		bindings: bindings,
 		TreeWidget:  t,
 	}
 }
@@ -109,17 +113,16 @@ func (mv *MailboxesView) SetMailboxes(mboxes []*models.Mailbox) {
 	mv.AskRedraw()
 }
 
-func (mv *MailboxesView) HandleEvent(ev tcell.Event) {
-	switch ev := ev.(type) {
-	case *tcell.EventKey:
-		switch ev.Key() {
-		case tcell.KeyRune:
-			switch ev.Rune() {
-			case 'Q', 'q':
-				App.Stop()
-				return
-			}
+func (mv *MailboxesView) HandleEvent(ks []*lib.KeyStroke) bool {
+	if cmd := mv.bindings.FindCommand(ks); cmd != "" {
+		mev, err := mv.machine.BuildEvent(cmd)
+		if err != nil {
+			App.logger.Errorf("error building machine event from `%s` (%v)", cmd, err)
+			return false
+		}
+		if mv.machine.Send(mev) {
+			return true
 		}
 	}
-	mv.TreeWidget.HandleEvent(ev)
+	return mv.TreeWidget.HandleEvent(ks)
 }

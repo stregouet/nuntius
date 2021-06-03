@@ -2,6 +2,8 @@ package widgets
 
 import (
 	"github.com/gdamore/tcell/v2"
+
+	"github.com/stregouet/nuntius/lib"
 )
 
 type IRune interface {
@@ -68,22 +70,19 @@ func (l *ListWidget) Draw() {
 	}
 }
 
-func (l *ListWidget) HandleEvent(ev tcell.Event) bool {
-	switch ev := ev.(type) {
-	case *tcell.EventKey:
-		switch ev.Key() {
-		case tcell.KeyUp, tcell.KeyCtrlP:
-			l.selected = max(l.selected-1, 1)
-			l.AskRedraw()
-			return true
-		case tcell.KeyDown, tcell.KeyCtrlN:
-			l.selected = min(l.selected+1, len(l.lines))
-			l.AskRedraw()
-			return true
-		case tcell.KeyEnter:
-			l.onSelect()
-			return true
-		}
+func (l *ListWidget) HandleEvent(ks []*lib.KeyStroke) bool {
+	switch ks[0].Key {
+	case tcell.KeyUp, tcell.KeyCtrlP:
+		l.selected = max(l.selected-1, 1)
+		l.AskRedraw()
+		return true
+	case tcell.KeyDown, tcell.KeyCtrlN:
+		l.selected = min(l.selected+1, len(l.lines))
+		l.AskRedraw()
+		return true
+	case tcell.KeyEnter:
+		l.onSelect()
+		return true
 	}
 	return false
 }
