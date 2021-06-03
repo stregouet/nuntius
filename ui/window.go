@@ -9,90 +9,10 @@ import (
 
 	"github.com/stregouet/nuntius/config"
 	"github.com/stregouet/nuntius/lib"
+	sm "github.com/stregouet/nuntius/statesmachines"
 	"github.com/stregouet/nuntius/models"
 	"github.com/stregouet/nuntius/workers"
 )
-
-const (
-	STATE_SHOW_TAB lib.StateType      = "SHOW_TAB"
-	TR_OPEN_TAB    lib.TransitionType = "OPEN_TAB"
-	TR_CLOSE_TAB   lib.TransitionType = "CLOSE_TAB"
-	TR_NEXT_TAB    lib.TransitionType = "NEXT_TAB"
-	TR_PREV_TAB    lib.TransitionType = "PREV_TAB"
-	TR_CLOSE_APP   lib.TransitionType = "CLOSE_APP"
-
-	STATE_WRITE_CMD  lib.StateType      = "WRITE_CMD"
-	TR_START_WRITING lib.TransitionType = "START_WRITING"
-	TR_CANCEL        lib.TransitionType = "CANCEL"
-	TR_VALIDATE      lib.TransitionType = "VALIDATE"
-)
-
-type WindowMachineCtx struct {
-	tabs        []*Tab
-	selectedTab int
-}
-
-func buildWindowMachine() *lib.Machine {
-	return lib.NewMachine(
-		&WindowMachineCtx{
-			tabs:        make([]*Tab, 0),
-			selectedTab: 0,
-		},
-		STATE_SHOW_TAB,
-		lib.States{
-			STATE_SHOW_TAB: &lib.State{
-				Transitions: lib.Transitions{
-					TR_CLOSE_APP: &lib.Transition{
-						Target: STATE_SHOW_TAB,
-						Action: func(c interface{}, ev *lib.Event) {
-							App.Stop()
-						},
-					},
-					TR_OPEN_TAB: &lib.Transition{
-						Target: STATE_SHOW_TAB,
-						Action: func(c interface{}, ev *lib.Event) {
-							wmc := c.(*WindowMachineCtx)
-							newtab := ev.Payload.(*Tab)
-							wmc.tabs = append(wmc.tabs, newtab)
-							wmc.selectedTab = len(wmc.tabs) - 1
-						},
-					},
-					TR_CLOSE_TAB:     &lib.Transition{
-						Target: STATE_SHOW_TAB,
-						Action: func(c interface{}, ev *lib.Event) {
-							wmc := c.(*WindowMachineCtx)
-							if len(wmc.tabs) == 1 {
-								return
-							}
-							i := wmc.selectedTab
-							wmc.tabs = append(wmc.tabs[:i], wmc.tabs[i+1:]...)
-							wmc.selectedTab = 0
-						},
-					},
-					TR_NEXT_TAB:      &lib.Transition{
-						Target: STATE_SHOW_TAB,
-						Action: func(c interface{}, ev *lib.Event) {
-							wmc := c.(*WindowMachineCtx)
-							next := wmc.selectedTab + 1
-							if next >= len(wmc.tabs) {
-								next = 0
-							}
-							wmc.selectedTab = next
-						},
-					},
-					TR_PREV_TAB:      &lib.Transition{Target: STATE_SHOW_TAB},
-					TR_START_WRITING: &lib.Transition{Target: STATE_WRITE_CMD},
-				},
-			},
-			STATE_WRITE_CMD: &lib.State{
-				Transitions: lib.Transitions{
-					TR_CANCEL:   &lib.Transition{Target: STATE_SHOW_TAB},
-					TR_VALIDATE: &lib.Transition{Target: STATE_SHOW_TAB},
-				},
-			},
-		},
-	)
-}
 
 type Window struct {
 	screen tcell.Screen
@@ -106,15 +26,19 @@ type Window struct {
 
 func NewWindow(cfg []*config.Account, bindings config.Keybindings) *Window {
 	w := &Window{
-		machine: buildWindowMachine(),
+		machine: sm.NewWindowMachine(),
 		bindings: bindings,
 		ex:      NewStatus("ici c'est pour les commandes"),
 	}
 	w.machine.OnTransition(func(s *lib.State, ev *lib.Event) {
+		if ev.Transition == sm.TR_CLOSE_APP {
+			App.Stop()
+			return
+		}
 		switch ev.Transition {
-		case TR_OPEN_TAB:
+		case sm.TR_OPEN_TAB:
 			w.onOpenTab(s, ev)
-		case TR_NEXT_TAB, TR_CLOSE_TAB:
+		case sm.TR_NEXT_TAB, sm.TR_CLOSE_TAB:
 			w.screen.Clear()
 			w.AskRedraw()
 		}
@@ -153,13 +77,13 @@ func NewWindow(cfg []*config.Account, bindings config.Keybindings) *Window {
 				}
 				return nil
 			})
-		w.machine.Send(&lib.Event{TR_OPEN_TAB, &Tab{accwidget, c.Name, nil}})
+		w.machine.Send(&lib.Event{sm.TR_OPEN_TAB, &sm.Tab{accwidget, c.Name}})
 	}
 	return w
 }
 
-func (w *Window) state() *WindowMachineCtx {
-	return w.machine.Context.(*WindowMachineCtx)
+func (w *Window) state() *sm.WindowMachineCtx {
+	return w.machine.Context.(*sm.WindowMachineCtx)
 }
 
 func (w *Window) onSelectMailbox(acc string, mailbox *models.Mailbox) {
@@ -179,11 +103,11 @@ func (w *Window) onSelectMailbox(acc string, mailbox *models.Mailbox) {
 			}
 			return nil
 		})
-	w.machine.Send(&lib.Event{TR_OPEN_TAB, &Tab{mv, mailbox.TabTitle(), nil}})
+	w.machine.Send(&lib.Event{sm.TR_OPEN_TAB, &sm.Tab{mv, mailbox.TabTitle()}})
 }
 
 func (w *Window) onOpenTab(s *lib.State, ev *lib.Event) {
-	tab := ev.Payload.(*Tab)
+	tab := ev.Payload.(*sm.Tab)
 	tab.Content.AskingRedraw(func() {
 		w.AskRedraw()
 	})
@@ -230,7 +154,7 @@ func (w *Window) SetScreen(s tcell.Screen) {
 	w.screen = s
 	w.ex.SetViewPort(w.exViewPort())
 	state := w.state()
-	for _, t := range state.tabs {
+	for _, t := range state.Tabs {
 		t.Content.SetViewPort(w.tabViewPort())
 	}
 }
@@ -244,9 +168,9 @@ func (w *Window) Draw() {
 	}
 	s := w.state()
 	offset := 1
-	for i, t := range s.tabs {
+	for i, t := range s.Tabs {
 		style := styleBase
-		if i == s.selectedTab {
+		if i == s.SelectedTab {
 			style = styleRev
 		}
 		for x, runec := range t.Title {
@@ -254,13 +178,13 @@ func (w *Window) Draw() {
 		}
 		offset += len(t.Title) + 1
 	}
-	s.tabs[s.selectedTab].Content.Draw()
+	s.Tabs[s.SelectedTab].Content.Draw()
 	w.ex.Draw()
 }
 
 func (w *Window) HandleEvent(ev tcell.Event) bool {
 	ks := []*lib.KeyStroke{lib.KeyStrokeFromEvent(ev)}
-	if w.machine.Current == STATE_WRITE_CMD {
+	if w.machine.Current == sm.STATE_WRITE_CMD {
 		// in write_cmd state always forward event to ex
 		return w.ex.HandleEvent(ks)
 	} else {
@@ -280,7 +204,7 @@ func (w *Window) HandleEvent(ev tcell.Event) bool {
 		// either not a global command or this tcell event does not translate
 		// to an application machine event
 		s := w.state()
-		return s.tabs[s.selectedTab].Content.HandleEvent(ks)
+		return s.Tabs[s.SelectedTab].Content.HandleEvent(ks)
 	}
 	return false
 }
