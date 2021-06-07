@@ -2,6 +2,7 @@ package config
 
 import (
 	"fmt"
+	"strings"
 
 	"github.com/stregouet/nuntius/lib"
 )
@@ -33,7 +34,11 @@ func (k KeyMode) Validate() error {
 			return nil
 		}
 	}
-	return fmt.Errorf("unknown keymode `%s` (available modes: XXX)", k)
+	modes := make([]string, 0, len(KEYS_MODES))
+	for _, m := range KEYS_MODES {
+		modes = append(modes, string(m))
+	}
+	return fmt.Errorf("unknown keymode `%s` (available modes: %s)", k, strings.Join(modes, ", "))
 }
 
 func (k Keybindings) Validate() error {
