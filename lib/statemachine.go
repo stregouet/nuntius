@@ -27,7 +27,7 @@ type State struct {
 	Transitions Transitions
 }
 
-type StateListener func(s *State, ev *Event)
+type StateListener func(s StateType, machineContext interface{}, ev *Event)
 
 type StateType string
 
@@ -85,13 +85,16 @@ func (m *Machine) OffTransition(listenerId int) {
 	delete(m.transitionListeners, listenerId)
 }
 
-func (m *Machine) callListeners(current *State, ev *Event) {
+func (m *Machine) callListeners(current StateType, ctx interface{}, ev *Event) {
 	for _, l := range m.transitionListeners {
-		l(current, ev)
+		l(current, ctx, ev)
 	}
 }
 
 func (m *Machine) Send(ev *Event) bool {
+	if ev == nil {
+		return false
+	}
 	current := m.States[m.Current]
 	if tr, ok := current.Transitions[ev.Transition]; ok {
 		if current.Exit != nil {
@@ -105,7 +108,7 @@ func (m *Machine) Send(ev *Event) bool {
 		if tr.Action != nil {
 			tr.Action(m.Context, ev)
 		}
-		m.callListeners(nextState, ev)
+		m.callListeners(m.Current, m.Context, ev)
 		return true
 	}
 	return false

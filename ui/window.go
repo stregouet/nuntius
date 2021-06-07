@@ -30,14 +30,14 @@ func NewWindow(cfg []*config.Account, bindings config.Keybindings) *Window {
 		bindings: bindings,
 		ex:       NewStatus("ici c'est pour les commandes"),
 	}
-	w.machine.OnTransition(func(s *lib.State, ev *lib.Event) {
+	w.machine.OnTransition(func(s lib.StateType, ctx interface{}, ev *lib.Event) {
 		if ev.Transition == sm.TR_CLOSE_APP {
 			App.Stop()
 			return
 		}
 		switch ev.Transition {
 		case sm.TR_OPEN_TAB:
-			w.onOpenTab(s, ev)
+			w.onOpenTab(ev)
 		case sm.TR_NEXT_TAB, sm.TR_CLOSE_TAB:
 			w.screen.Clear()
 			w.AskRedraw()
@@ -106,7 +106,7 @@ func (w *Window) onSelectMailbox(acc string, mailbox *models.Mailbox) {
 	w.machine.Send(&lib.Event{sm.TR_OPEN_TAB, &sm.Tab{mv, mailbox.TabTitle()}})
 }
 
-func (w *Window) onOpenTab(s *lib.State, ev *lib.Event) {
+func (w *Window) onOpenTab(ev *lib.Event) {
 	tab := ev.Payload.(*sm.Tab)
 	tab.Content.AskingRedraw(func() {
 		w.AskRedraw()
