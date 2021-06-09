@@ -23,8 +23,18 @@ func NewMailboxesView(accountName string, bindings config.Mapping, onSelect func
 		m := line.(*models.Mailbox)
 		onSelect(accountName, m)
 	}
+	machine := sm.NewMailboxesMachine()
+	machine.OnTransition(func(s lib.StateType, ctx interface{}, ev *lib.Event) {
+		state := ctx.(*sm.MailboxesMachineCtx)
+		switch ev.Transition {
+		case sm.TR_SELECT_MBOX:
+			onSelect(accountName, state.Mboxes[state.Selected - 1])
+		case sm.TR_UP_MBOX, sm.TR_DOWN_MBOX:
+			t.SetSelected(state.Selected)
+		}
+	})
 	return &MailboxesView{
-		machine:     sm.NewMailboxesMachine(),
+		machine:     machine,
 		accountName: accountName,
 		bindings:    bindings,
 		TreeWidget:  t,
@@ -61,5 +71,5 @@ func (mv *MailboxesView) HandleEvent(ks []*lib.KeyStroke) bool {
 			return true
 		}
 	}
-	return mv.TreeWidget.HandleEvent(ks)
+	return false
 }

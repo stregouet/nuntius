@@ -8,14 +8,15 @@ import (
 const (
 	STATE_LOAD_MBOXES lib.StateType      = "LOAD_MBOXES"
 	STATE_SHOW_MBOXES lib.StateType      = "SHOW_MBOXES"
-	TR_NEXT_MBOX      lib.TransitionType = "NEXT_MBOX"
-	TR_PREV_MBOX      lib.TransitionType = "PREV_MBOX"
+	TR_UP_MBOX        lib.TransitionType = "UP_MBOX"
+	TR_DOWN_MBOX      lib.TransitionType = "DOWN_MBOX"
 	TR_SET_MBOXES     lib.TransitionType = "SET_MBOXES"
+	TR_SELECT_MBOX    lib.TransitionType = "SELECT_MBOX"
 )
 
 type MailboxesMachineCtx struct {
-	mboxes   []*models.Mailbox
-	selected int
+	Mboxes   []*models.Mailbox
+	Selected int
 }
 
 func NewMailboxesMachine() *lib.Machine {
@@ -23,14 +24,14 @@ func NewMailboxesMachine() *lib.Machine {
 		Target: STATE_SHOW_MBOXES,
 		Action: func(c interface{}, ev *lib.Event) {
 			state := c.(*MailboxesMachineCtx)
-			mboxes := ev.Payload.([]*models.Mailbox)
-			state.mboxes = mboxes
+			Mboxes := ev.Payload.([]*models.Mailbox)
+			state.Mboxes = Mboxes
 		},
 	}
 	return lib.NewMachine(
 		&MailboxesMachineCtx{
-			mboxes:   make([]*models.Mailbox, 0),
-			selected: 0,
+			Mboxes:   make([]*models.Mailbox, 0),
+			Selected: 1,
 		},
 		STATE_LOAD_MBOXES,
 		lib.States{
@@ -42,18 +43,29 @@ func NewMailboxesMachine() *lib.Machine {
 			STATE_SHOW_MBOXES: &lib.State{
 				Transitions: lib.Transitions{
 					TR_SET_MBOXES: setmboxes,
-					TR_NEXT_MBOX: &lib.Transition{
+					TR_SELECT_MBOX: &lib.Transition{
+						Target: STATE_SHOW_MBOXES,
+					},
+					TR_DOWN_MBOX: &lib.Transition{
 						Target: STATE_SHOW_MBOXES,
 						Action: func(c interface{}, ev *lib.Event) {
 							state := c.(*MailboxesMachineCtx)
-							state.selected++
+							next := state.Selected + 1
+							if next > len(state.Mboxes) {
+								next = len(state.Mboxes)
+							}
+							state.Selected = next
 						},
 					},
-					TR_PREV_MBOX: &lib.Transition{
+					TR_UP_MBOX: &lib.Transition{
 						Target: STATE_SHOW_MBOXES,
 						Action: func(c interface{}, ev *lib.Event) {
 							state := c.(*MailboxesMachineCtx)
-							state.selected--
+							next := state.Selected - 1
+							if next < 1 {
+								next = 1
+							}
+							state.Selected = next
 						},
 					},
 				},

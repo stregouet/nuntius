@@ -21,7 +21,7 @@ const (
 	KEY_MODE_MBOXES KeyMode = "mboxes"
 )
 
-var KEYS_MODES = []KeyMode{KEY_MODE_SEARCH, KEY_MODE_THREAD, KEY_MODE_GLOBAL}
+var KEYS_MODES = []KeyMode{KEY_MODE_SEARCH, KEY_MODE_THREAD, KEY_MODE_GLOBAL, KEY_MODE_MBOXES}
 
 func (m Mapping) FindCommand(ks []*lib.KeyStroke) string {
 	s := lib.KeyStrokesToString(ks)

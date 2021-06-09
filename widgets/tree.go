@@ -116,18 +116,25 @@ func (t *TreeWidget) Draw() {
 }
 
 func (t *TreeWidget) onSelect() {
-	t.OnSelect(t.lines[t.selected-1])
+	t.OnSelect(t.GetSelected())
 }
+
+func (t *TreeWidget) GetSelected() ITreeLine {
+	return t.lines[t.selected-1]
+}
+func (t *TreeWidget) SetSelected(s int) {
+	t.selected = s
+	t.AskRedraw()
+}
+
 
 func (t *TreeWidget) HandleEvent(ks []*lib.KeyStroke) bool {
 	switch ks[0].Key {
 	case tcell.KeyUp, tcell.KeyCtrlP:
-		t.selected = max(t.selected-1, 1)
-		t.AskRedraw()
+		t.SetSelected(max(t.selected-1, 1))
 		return true
 	case tcell.KeyDown, tcell.KeyCtrlN:
-		t.selected = min(t.selected+1, len(t.lines))
-		t.AskRedraw()
+		t.SetSelected(min(t.selected+1, len(t.lines)))
 		return true
 	case tcell.KeyEnter:
 		t.onSelect()
