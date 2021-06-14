@@ -10,6 +10,7 @@ const (
 	TR_UP_MAIL        lib.TransitionType = "UP_MAIL"
 	TR_DOWN_MAIL      lib.TransitionType = "DOWN_MAIL"
 	TR_SET_MAILS      lib.TransitionType = "SET_MAILS"
+	TR_SELECT_MAIL    lib.TransitionType = "SELECT_MAIL"
 )
 
 type ThreadMachineCtx struct {
@@ -27,6 +28,9 @@ func NewThreadMachine() *lib.Machine {
 		lib.States{
 			STATE_SHOW_THREAD: &lib.State{
 				Transitions: lib.Transitions{
+					TR_SELECT_MAIL: &lib.Transition{
+						Target: STATE_SHOW_THREAD,
+					},
 					TR_SET_MAILS: &lib.Transition{
 						Target: STATE_SHOW_THREAD,
 						Action: func(c interface{}, ev *lib.Event) {

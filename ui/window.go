@@ -38,6 +38,7 @@ func NewWindow(cfg []*config.Account, bindings config.Keybindings) *Window {
 		switch ev.Transition {
 		case sm.TR_OPEN_TAB:
 			w.onOpenTab(ev)
+			w.AskRedraw()
 		case sm.TR_NEXT_TAB, sm.TR_PREV_TAB, sm.TR_CLOSE_TAB:
 			w.screen.Clear()
 			w.AskRedraw()
@@ -108,7 +109,7 @@ func (w *Window) onSelectMailbox(acc string, mailbox *models.Mailbox) {
 }
 
 func (w *Window) onSelectThread(acc string, thread *models.Thread) {
-	tv := NewThreadView(w.bindings[config.KEY_MODE_THREAD])
+	tv := NewThreadView(acc, w.bindings[config.KEY_MODE_THREAD], w.onSelectMail)
 	App.PostDbMessage(
 		&workers.FetchThread{RootId: thread.RootId},
 		acc,
@@ -124,6 +125,11 @@ func (w *Window) onSelectThread(acc string, thread *models.Thread) {
 			return nil
 		})
 	w.machine.Send(&lib.Event{sm.TR_OPEN_TAB, &sm.Tab{tv, thread.Subject}})
+}
+
+func (w *Window) onSelectMail(acc string, mail *models.Mail) {
+	mv := NewMailView(w.bindings[config.KEY_MODE_MAIL])
+	w.machine.Send(&lib.Event{sm.TR_OPEN_TAB, &sm.Tab{mv, mail.Subject}})
 }
 
 func (w *Window) onOpenTab(ev *lib.Event) {
