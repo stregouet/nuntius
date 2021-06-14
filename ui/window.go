@@ -38,7 +38,7 @@ func NewWindow(cfg []*config.Account, bindings config.Keybindings) *Window {
 		switch ev.Transition {
 		case sm.TR_OPEN_TAB:
 			w.onOpenTab(ev)
-		case sm.TR_NEXT_TAB, sm.TR_CLOSE_TAB:
+		case sm.TR_NEXT_TAB, sm.TR_PREV_TAB, sm.TR_CLOSE_TAB:
 			w.screen.Clear()
 			w.AskRedraw()
 		}

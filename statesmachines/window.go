@@ -60,7 +60,12 @@ func NewWindowMachine() *lib.Machine {
 							}
 							i := wmc.SelectedTab
 							wmc.Tabs = append(wmc.Tabs[:i], wmc.Tabs[i+1:]...)
-							wmc.SelectedTab = 0
+
+							next := wmc.SelectedTab - 1
+							if next < 0 {
+								next = 0
+							}
+							wmc.SelectedTab = next
 						},
 					},
 					TR_NEXT_TAB: &lib.Transition{
@@ -74,7 +79,17 @@ func NewWindowMachine() *lib.Machine {
 							wmc.SelectedTab = next
 						},
 					},
-					TR_PREV_TAB:      &lib.Transition{Target: STATE_SHOW_TAB},
+					TR_PREV_TAB: &lib.Transition{
+						Target: STATE_SHOW_TAB,
+						Action: func(c interface{}, ev *lib.Event) {
+							wmc := c.(*WindowMachineCtx)
+							next := wmc.SelectedTab - 1
+							if next < 0 {
+								next = len(wmc.Tabs) - 1
+							}
+							wmc.SelectedTab = next
+						},
+					},
 					TR_START_WRITING: &lib.Transition{Target: STATE_WRITE_CMD},
 				},
 			},
