@@ -87,7 +87,7 @@ func (w *Window) state() *sm.WindowMachineCtx {
 }
 
 func (w *Window) onSelectMailbox(acc string, mailbox *models.Mailbox) {
-	mv := NewMailboxView(acc, mailbox.Name, nil)
+	mv := NewMailboxView(acc, mailbox.Name, w.bindings[config.KEY_MODE_MBOX], nil)
 	App.PostDbMessage(
 		&workers.FetchMailbox{Mailbox: mailbox.Name},
 		acc,

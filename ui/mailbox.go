@@ -3,6 +3,7 @@ package ui
 import (
 	"github.com/gdamore/tcell/v2"
 
+	"github.com/stregouet/nuntius/config"
 	"github.com/stregouet/nuntius/lib"
 	"github.com/stregouet/nuntius/models"
 	sm "github.com/stregouet/nuntius/statesmachines"
@@ -11,18 +12,32 @@ import (
 )
 
 type MailboxView struct {
-	machine       *lib.Machine
-	errorListener func(e error)
-	accountName   string
-	mboxName      string
+	machine           *lib.Machine
+	viewableFirstLine int
+	viewableLastLine  int
+	bindings          config.Mapping
+	errorListener     func(e error)
+	accountName       string
+	mboxName          string
 	*widgets.ListWidget
 }
 
-func NewMailboxView(accountName, mboxName string, onSelect func(accname string, t *models.Thread)) *MailboxView {
+func NewMailboxView(accountName, mboxName string, bindings config.Mapping, onSelect func(accname string, t *models.Thread)) *MailboxView {
+	machine := sm.NewMailboxMachine()
 	l := widgets.NewList()
+	machine.OnTransition(func(s lib.StateType, ctx interface{}, ev *lib.Event) {
+		state := ctx.(*sm.MailboxMachineCtx)
+		switch ev.Transition {
+		// case sm.TR_SELECT_MBOX:
+		// 	onSelect(accountName, state.Mboxes[state.Selected-1])
+		case sm.TR_UP_THREAD, sm.TR_DOWN_THREAD:
+			l.SetSelected(state.Selected)
+		}
+	})
 	return &MailboxView{
-		machine:     sm.NewMailboxMachine(),
+		machine:     machine,
 		accountName: accountName,
+		bindings:    bindings,
 		mboxName:    mboxName,
 		ListWidget:  l,
 	}
@@ -95,5 +110,15 @@ func (mv *MailboxView) Draw() {
 }
 
 func (mv *MailboxView) HandleEvent(ks []*lib.KeyStroke) bool {
-	return mv.ListWidget.HandleEvent(ks)
+	if cmd := mv.bindings.FindCommand(ks); cmd != "" {
+		mev, err := mv.machine.BuildEvent(cmd)
+		if err != nil {
+			App.logger.Errorf("error building machine event from `%s` (%v)", cmd, err)
+			return false
+		}
+		if mv.machine.Send(mev) {
+			return true
+		}
+	}
+	return false
 }

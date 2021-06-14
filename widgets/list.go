@@ -47,6 +47,12 @@ func min(a, b int) int {
 		return b
 	}
 }
+
+func (l *ListWidget) SetSelected(s int) {
+	l.selected = s
+	l.AskRedraw()
+}
+
 func (l *ListWidget) Draw() {
 	v := l.view
 	w, h := v.Size()

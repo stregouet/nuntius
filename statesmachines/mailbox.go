@@ -10,17 +10,19 @@ const (
 	STATE_SHOW_MBOX lib.StateType      = "SHOW_MBOX"
 	TR_SET_THREADS  lib.TransitionType = "SET_THREADS"
 	TR_REFRESH_MBOX lib.TransitionType = "REFRESH_MBOX"
+	TR_UP_THREAD    lib.TransitionType = "UP_THREAD"
+	TR_DOWN_THREAD  lib.TransitionType = "DOWN_THREAD"
 )
 
 type MailboxMachineCtx struct {
-	threads  []*models.Thread
-	selected int
+	Threads  []*models.Thread
+	Selected int
 }
 
 func NewMailboxMachine() *lib.Machine {
 	c := &MailboxMachineCtx{
-		threads:  make([]*models.Thread, 0),
-		selected: 0,
+		Threads:  make([]*models.Thread, 0),
+		Selected: 1,
 	}
 	return lib.NewMachine(
 		c,
@@ -31,6 +33,28 @@ func NewMailboxMachine() *lib.Machine {
 					TR_REFRESH_MBOX: &lib.Transition{
 						Target: STATE_LOAD_MBOX,
 					},
+					TR_UP_THREAD: &lib.Transition{
+						Target: STATE_SHOW_MBOX,
+						Action: func(c interface{}, ev *lib.Event) {
+							state := c.(*MailboxMachineCtx)
+							next := state.Selected - 1
+							if next < 1 {
+								next = 1
+							}
+							state.Selected = next
+						},
+					},
+					TR_DOWN_THREAD: &lib.Transition{
+						Target: STATE_SHOW_MBOX,
+						Action: func(c interface{}, ev *lib.Event) {
+							state := c.(*MailboxMachineCtx)
+							next := state.Selected + 1
+							if next > len(state.Threads) {
+								next = len(state.Threads)
+							}
+							state.Selected = next
+						},
+					},
 				},
 			},
 			STATE_LOAD_MBOX: &lib.State{
@@ -40,7 +64,7 @@ func NewMailboxMachine() *lib.Machine {
 						Action: func(c interface{}, ev *lib.Event) {
 							state := c.(*MailboxMachineCtx)
 							threads := ev.Payload.([]*models.Thread)
-							state.threads = threads
+							state.Threads = threads
 						},
 					},
 				},
