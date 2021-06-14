@@ -15,6 +15,7 @@ import (
 // XXX rename to ThreadInfo?
 type Thread struct {
 	Id      int
+	RootId  int
 	Subject string
 	Date    time.Time
 	Count   int
@@ -37,8 +38,20 @@ type Mail struct {
 	MessageId string
 	Mailbox   string
 	InReplyTo string
+	depth     int
 	Date      time.Time
 	Header    *mail.Header
+}
+
+func (m *Mail) ToRune() []rune {
+	return []rune(fmt.Sprintf("%s %s",
+		m.Date.Format("2006-01-02 15:04:05"),
+		m.Subject,
+	))
+}
+
+func (m *Mail) Depth() int {
+	return m.depth
 }
 
 func (m *Mail) hasParent(tx *sql.Tx) (int, error) {
@@ -171,6 +184,7 @@ func AllThreads(r ndb.Queryer, mailbox, accname string) ([]*Thread, error) {
 	// - subject of root of this thread
 	rows, err := r.Query(`WITH q AS (
   SELECT
+    m.id,
     subject,
     threadid,
 	inreplyto,
@@ -185,7 +199,7 @@ func AllThreads(r ndb.Queryer, mailbox, accname string) ([]*Thread, error) {
     mbox.name = ?
   WINDOW w AS (partition by threadid)
 ) SELECT
-  q.threadid, q.subject, q.date, q.count
+  q.id, q.threadid, q.subject, q.date, q.count
 FROM q
 WHERE
   NOT EXISTS (SELECT 1 FROM mail p WHERE q.inreplyto = p.messageid)
@@ -195,15 +209,16 @@ WHERE
 	}
 	result := make([]*Thread, 0)
 	for rows.Next() {
+		var rootid int
 		var threadid sql.NullInt32
 		var subject string
 		var date DateFromStr
 		var count int
-		err = rows.Scan(&threadid, &subject, &date, &count)
+		err = rows.Scan(&rootid, &threadid, &subject, &date, &count)
 		if err != nil {
 			return nil, err
 		}
-		t := &Thread{Subject: subject, Date: date.T, Count: count}
+		t := &Thread{RootId: rootid, Subject: subject, Date: date.T, Count: count}
 		if threadid.Valid {
 			t.Id = int(threadid.Int32)
 		}
@@ -233,6 +248,48 @@ WHERE
 			return nil, err
 		}
 		roots = append(roots, &Mail{Id: id})
+	}
+	return roots, nil
+}
+
+func AllThreadMails(r ndb.Queryer, rootMailId int) ([]*Mail, error) {
+	rows, err := r.Query(`
+WITH RECURSIVE tmp(id, messageid, subject, date, depth) as (
+    SELECT
+      mail.id,
+      messageid,
+	  subject,
+	  date,
+	  0 as depth
+    FROM mail
+    WHERE mail.id = ?
+  UNION ALL
+    SELECT
+      this.id,
+      this.messageid,
+	  this.subject,
+	  this.date,
+	  prior.depth + 1 as depth
+    FROM
+      tmp prior
+      INNER JOIN mail this ON this.inreplyto = prior.messageid
+) select id, subject, date, depth from tmp`, rootMailId)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	roots := make([]*Mail, 0)
+	for rows.Next() {
+		var id int
+		var subject string
+		var date time.Time
+		var depth int
+		err = rows.Scan(&id, &subject, &date, &depth)
+		if err != nil {
+			return nil, err
+		}
+		m := &Mail{Id: id, Subject: subject, depth: depth, Date: date}
+		roots = append(roots, m)
 	}
 	return roots, nil
 }

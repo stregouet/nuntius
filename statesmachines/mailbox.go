@@ -8,12 +8,13 @@ import (
 )
 
 const (
-	STATE_LOAD_MBOX lib.StateType      = "LOAD_MBOX"
-	STATE_SHOW_MBOX lib.StateType      = "SHOW_MBOX"
-	TR_SET_THREADS  lib.TransitionType = "SET_THREADS"
-	TR_REFRESH_MBOX lib.TransitionType = "REFRESH_MBOX"
-	TR_UP_THREAD    lib.TransitionType = "UP_THREAD"
-	TR_DOWN_THREAD  lib.TransitionType = "DOWN_THREAD"
+	STATE_LOAD_MBOX  lib.StateType      = "LOAD_MBOX"
+	STATE_SHOW_MBOX  lib.StateType      = "SHOW_MBOX"
+	TR_SET_THREADS   lib.TransitionType = "SET_THREADS"
+	TR_REFRESH_MBOX  lib.TransitionType = "REFRESH_MBOX"
+	TR_UP_THREAD     lib.TransitionType = "UP_THREAD"
+	TR_DOWN_THREAD   lib.TransitionType = "DOWN_THREAD"
+	TR_SELECT_THREAD lib.TransitionType = "SELECT_THREAD"
 )
 
 type MailboxMachineCtx struct {
@@ -43,6 +44,9 @@ func NewMailboxMachine() *lib.Machine {
 				Transitions: lib.Transitions{
 					TR_REFRESH_MBOX: &lib.Transition{
 						Target: STATE_LOAD_MBOX,
+					},
+					TR_SELECT_THREAD: &lib.Transition{
+						Target: STATE_SHOW_MBOX,
 					},
 					TR_UP_THREAD: &lib.Transition{
 						Target: STATE_SHOW_MBOX,

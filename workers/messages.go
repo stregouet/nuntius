@@ -63,6 +63,22 @@ func (m *Error) Clone() Message {
 	return &Error{m.CloneBase(), m.Error}
 }
 
+type FetchThread struct {
+	BaseMessage
+	RootId       int
+}
+func (m *FetchThread) Clone() Message {
+	return &FetchThread{m.CloneBase(), m.RootId}
+}
+
+type FetchThreadRes struct {
+	BaseMessage
+	Mails        []*models.Mail
+}
+func (m *FetchThreadRes) Clone() Message {
+	return &FetchThreadRes{m.CloneBase(), m.Mails}
+}
+
 type FetchMailboxRes struct {
 	BaseMessage
 	List        []*models.Thread

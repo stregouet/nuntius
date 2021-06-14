@@ -116,6 +116,16 @@ func (d *Database) handleMessage(db *sql.DB, msg Message) {
 			m = &InsertNewMessagesRes{Threads: result}
 		}
 		d.postResponse(m, msg.GetId())
+	case *FetchThread:
+		result, err := d.handleFetchThread(db, msg)
+		var m Message
+		if err != nil {
+			m = &Error{Error: errors.New("oups fetching thread")}
+			d.logger.Errorf("error while fetching mail %v", err)
+		} else {
+			m = &FetchThreadRes{Mails: result}
+		}
+		d.postResponse(m, msg.GetId())
 	// case *FetchMailboxImapRes:
 	// 	result, err := d.handleFetchMailboxImap(db, msg)
 	// 	var m Message
@@ -235,6 +245,10 @@ func (d *Database) handleFetchMailboxImap(db *sql.DB, msg *FetchMailboxImapRes) 
 		return nil, errors.Wrap(err, "while commiting tx")
 	}
 	return models.AllThreads(db, msg.Mailbox, msg.GetAccName())
+}
+
+func (d *Database) handleFetchThread(db *sql.DB, msg *FetchThread) ([]*models.Mail, error) {
+	return models.AllThreadMails(db, msg.RootId)
 }
 
 func (d *Database) handleFetchMailbox(db *sql.DB, msg *FetchMailbox) (Message, error) {

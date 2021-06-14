@@ -87,7 +87,7 @@ func (w *Window) state() *sm.WindowMachineCtx {
 }
 
 func (w *Window) onSelectMailbox(acc string, mailbox *models.Mailbox) {
-	mv := NewMailboxView(acc, mailbox.Name, w.bindings[config.KEY_MODE_MBOX], nil)
+	mv := NewMailboxView(acc, mailbox.Name, w.bindings[config.KEY_MODE_MBOX], w.onSelectThread)
 	App.PostDbMessage(
 		&workers.FetchMailbox{Mailbox: mailbox.Name},
 		acc,
@@ -105,6 +105,25 @@ func (w *Window) onSelectMailbox(acc string, mailbox *models.Mailbox) {
 			return nil
 		})
 	w.machine.Send(&lib.Event{sm.TR_OPEN_TAB, &sm.Tab{mv, mailbox.TabTitle()}})
+}
+
+func (w *Window) onSelectThread(acc string, thread *models.Thread) {
+	tv := NewThreadView(w.bindings[config.KEY_MODE_THREAD])
+	App.PostDbMessage(
+		&workers.FetchThread{RootId: thread.RootId},
+		acc,
+		func(response workers.Message) error {
+			switch r := response.(type) {
+			case *workers.Error:
+				w.ShowMessage(r.Error.Error())
+			case *workers.FetchThreadRes:
+				tv.SetMails(r.Mails)
+			default:
+				App.logger.Error("unknown response type")
+			}
+			return nil
+		})
+	w.machine.Send(&lib.Event{sm.TR_OPEN_TAB, &sm.Tab{tv, thread.Subject}})
 }
 
 func (w *Window) onOpenTab(ev *lib.Event) {
