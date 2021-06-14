@@ -8,6 +8,7 @@ type Execer interface {
 
 type Queryer interface {
 	Query(query string, args ...interface{}) (*sql.Rows, error)
+	QueryRow(query string, args ...interface{}) *sql.Row
 }
 
 type BaseRunner interface {

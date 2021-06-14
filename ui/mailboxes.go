@@ -28,7 +28,7 @@ func NewMailboxesView(accountName string, bindings config.Mapping, onSelect func
 		state := ctx.(*sm.MailboxesMachineCtx)
 		switch ev.Transition {
 		case sm.TR_SELECT_MBOX:
-			onSelect(accountName, state.Mboxes[state.Selected - 1])
+			onSelect(accountName, state.Mboxes[state.Selected-1])
 		case sm.TR_UP_MBOX, sm.TR_DOWN_MBOX:
 			t.SetSelected(state.Selected)
 		}

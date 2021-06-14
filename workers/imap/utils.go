@@ -13,7 +13,7 @@ func toSeqSet(uids []uint32) *imap.SeqSet {
 	return &set
 }
 
-func fetch(c *client.Client, uids []uint32, items []imap.FetchItem, cb func(*imap.Message) error) error {
+func fetch(c *client.Client, set *imap.SeqSet, items []imap.FetchItem, cb func(*imap.Message) error) error {
 	messages := make(chan *imap.Message)
 	done := make(chan error)
 
@@ -30,7 +30,6 @@ func fetch(c *client.Client, uids []uint32, items []imap.FetchItem, cb func(*ima
 		done <- err
 	}()
 
-	set := toSeqSet(uids)
 	if err := c.UidFetch(set, items, messages); err != nil {
 		return err
 	}

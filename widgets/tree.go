@@ -127,7 +127,6 @@ func (t *TreeWidget) SetSelected(s int) {
 	t.AskRedraw()
 }
 
-
 func (t *TreeWidget) HandleEvent(ks []*lib.KeyStroke) bool {
 	switch ks[0].Key {
 	case tcell.KeyUp, tcell.KeyCtrlP:

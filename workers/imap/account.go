@@ -111,6 +111,19 @@ func (a *Account) Run(responses chan<- workers.Message) {
 				r = &workers.Done{}
 			}
 			postResponse(r, msg.GetId())
+		case *workers.FetchNewMessages:
+			result, err := a.handleFetchNewMessages(msg.Mailbox, msg.LastSeenUid)
+			var r workers.Message
+			if err != nil {
+				a.logger.Warnf("error fetching new messages %v", err)
+				r = &workers.Error{Error: errors.New("error requesting imap server")}
+			} else {
+				r = &workers.FetchNewMessagesRes{
+					Mailbox: msg.Mailbox,
+					Mails:   result,
+				}
+			}
+			postResponse(r, msg.GetId())
 		case *workers.FetchMailbox:
 			result, err := a.handleFetchMailbox(msg.Mailbox)
 			var r workers.Message
@@ -126,6 +139,80 @@ func (a *Account) Run(responses chan<- workers.Message) {
 			postResponse(r, msg.GetId())
 		}
 	}
+}
+
+// fetch new messages following strategy described in rfc4549#section-4.3.1
+func (a *Account) handleFetchNewMessages(mailbox string, lastseenuid uint32) ([]*models.Mail, error) {
+	err := a.selectMbox(mailbox)
+	if err != nil {
+		return nil, err
+	}
+	section := &imap.BodySectionName{
+		BodyPartName: imap.BodyPartName{
+			Specifier: imap.HeaderSpecifier,
+		},
+		Peek: true,
+	}
+
+	items := []imap.FetchItem{
+		imap.FetchBodyStructure,
+		imap.FetchEnvelope,
+		imap.FetchInternalDate,
+		imap.FetchFlags,
+		imap.FetchUid,
+		section.FetchItem(),
+	}
+	result := make([]*models.Mail, 0)
+	var set imap.SeqSet
+	set.AddRange(lastseenuid+1, 0)
+	err = fetch(a.c, &set, items, func(m *imap.Message) error {
+		if m.Uid <= lastseenuid {
+			// already known messages, and here we are only interested in new
+			// messages
+			return nil
+		}
+		reader := m.GetBody(section)
+		textprotoHeader, err := textproto.ReadHeader(bufio.NewReader(reader))
+		if err != nil {
+			return fmt.Errorf("could not read header: %v", err)
+		}
+		header := &mail.Header{message.Header{textprotoHeader}}
+
+		inreply := ""
+		inreplies, err := header.MsgIDList("in-reply-to")
+		if err != nil {
+			a.logger.Warnf(
+				"cannot parse in-reply (id: %s, subject: %s, inreplyto: %s) => ignoring, %v",
+				m.Envelope.MessageId,
+				m.Envelope.Subject,
+				m.Envelope.InReplyTo,
+				err)
+		} else if len(inreplies) > 0 {
+			inreply = inreplies[0]
+		}
+		msgid, err := header.MessageID()
+		if err != nil {
+			a.logger.Errorf("cannot parse messageid, %v", err)
+			return PARSE_IMAP_ERR
+		}
+
+		mail := &models.Mail{
+			Subject:   m.Envelope.Subject,
+			InReplyTo: inreply,
+			MessageId: msgid,
+			Date:      m.Envelope.Date,
+			Flags:     m.Flags,
+			Uid:       m.Uid,
+			Header:    header,
+		}
+		result = append(result, mail)
+		return nil
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	return result, nil
 }
 
 func (a *Account) handleFetchMailbox(mailbox string) ([]*models.Mail, error) {
@@ -155,7 +242,7 @@ func (a *Account) handleFetchMailbox(mailbox string) ([]*models.Mail, error) {
 		section.FetchItem(),
 	}
 	result := make([]*models.Mail, 0)
-	err = fetch(a.c, uids, items, func(m *imap.Message) error {
+	err = fetch(a.c, toSeqSet(uids), items, func(m *imap.Message) error {
 		reader := m.GetBody(section)
 		textprotoHeader, err := textproto.ReadHeader(bufio.NewReader(reader))
 		if err != nil {
@@ -165,7 +252,7 @@ func (a *Account) handleFetchMailbox(mailbox string) ([]*models.Mail, error) {
 
 		inreplies, err := header.MsgIDList("in-reply-to")
 		if err != nil {
-			a.logger.Errorf("cannot parse in-reply, %v", err)
+			a.logger.Errorf("cannot parse in-reply (id: %s), %v", m.Envelope.MessageId, err)
 			return PARSE_IMAP_ERR
 		}
 		inreply := ""

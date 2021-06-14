@@ -65,11 +65,51 @@ func (m *Error) Clone() Message {
 
 type FetchMailboxRes struct {
 	BaseMessage
-	List []*models.Thread
+	List        []*models.Thread
+	LastSeenUid uint32
 }
 
 func (m *FetchMailboxRes) Clone() Message {
-	return &FetchMailboxRes{m.CloneBase(), m.List}
+	return &FetchMailboxRes{m.CloneBase(), m.List, m.LastSeenUid}
+}
+
+type FetchNewMessages struct {
+	BaseMessage
+	Mailbox     string
+	LastSeenUid uint32
+}
+
+func (m *FetchNewMessages) Clone() Message {
+	return &FetchNewMessages{m.CloneBase(), m.Mailbox, m.LastSeenUid}
+}
+
+type FetchNewMessagesRes struct {
+	BaseMessage
+	Mailbox string
+	Mails   []*models.Mail
+}
+
+func (m *FetchNewMessagesRes) Clone() Message {
+	return &FetchNewMessagesRes{m.CloneBase(), m.Mailbox, m.Mails}
+}
+
+type InsertNewMessages struct {
+	BaseMessage
+	Mailbox string
+	Mails   []*models.Mail
+}
+
+func (m *InsertNewMessages) Clone() Message {
+	return &InsertNewMessages{m.CloneBase(), m.Mailbox, m.Mails}
+}
+
+type InsertNewMessagesRes struct {
+	BaseMessage
+	Threads []*models.Thread
+}
+
+func (m *InsertNewMessagesRes) Clone() Message {
+	return &InsertNewMessagesRes{m.CloneBase(), m.Threads}
 }
 
 type FetchMailboxImapRes struct {

@@ -18,6 +18,7 @@ func init() {
 				name TEXT,
 				shortname TEXT,
 				parent TEXT,
+				lastseenuid INTEGER DEFAULT 0,
 				account INTEGER NOT NULL REFERENCES account(id) ON DELETE CASCADE,
 				UNIQUE (name, account)
 			)`,

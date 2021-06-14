@@ -8,12 +8,13 @@ import (
 )
 
 type Mailbox struct {
-	Name      string
-	Parent    string
-	ShortName string
-	Count     uint32
-	Unseen    uint32
-	ReadOnly  bool
+	Name        string
+	Parent      string
+	ShortName   string
+	Count       uint32
+	Unseen      uint32
+	ReadOnly    bool
+	LastSeenUid uint32
 
 	directoryDepth int
 }
@@ -37,6 +38,16 @@ func (m *Mailbox) TabTitle() string {
 	return name
 }
 
+func (m *Mailbox) UpdateLastUid(r ndb.Execer, accname string) error {
+	_, err := r.Exec(
+		"UPDATE mailbox SET lastseenuid = ? FROM account WHERE account.name = ? AND mailbox.name = ?",
+		m.LastSeenUid,
+		accname,
+		m.Name,
+	)
+	return err
+}
+
 func (m *Mailbox) InsertInto(r ndb.Execer, accname string) error {
 	columns := []string{"name", "shortname"}
 	values := []interface{}{m.Name, m.ShortName}
@@ -55,6 +66,27 @@ func (m *Mailbox) InsertInto(r ndb.Execer, accname string) error {
 		values...,
 	)
 	return err
+}
+
+func GetMailbox(r ndb.Queryer, mboxname, accname string) (*Mailbox, error) {
+	var name string
+	var shortname string
+	var lastseenuid int
+	err := r.QueryRow(`
+SELECT
+  m.name, m.shortname, m.lastseenuid
+FROM
+  mailbox m
+  JOIN account a ON m.account = a.id
+WHERE a.name = ? AND m.name = ?`,
+		accname,
+		mboxname,
+	).Scan(&name, &shortname, &lastseenuid)
+	if err != nil {
+		return nil, err
+	}
+	m := &Mailbox{Name: name, ShortName: shortname, LastSeenUid: uint32(lastseenuid)}
+	return m, nil
 }
 
 func AllMailboxes(r ndb.Queryer, accname string) ([]*Mailbox, error) {

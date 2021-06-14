@@ -87,8 +87,8 @@ func (w *Window) state() *sm.WindowMachineCtx {
 }
 
 func (w *Window) onSelectMailbox(acc string, mailbox *models.Mailbox) {
-	mv := NewMailboxView(acc, nil)
-	App.PostMessage(
+	mv := NewMailboxView(acc, mailbox.Name, nil)
+	App.PostDbMessage(
 		&workers.FetchMailbox{Mailbox: mailbox.Name},
 		acc,
 		func(response workers.Message) error {
@@ -98,6 +98,7 @@ func (w *Window) onSelectMailbox(acc string, mailbox *models.Mailbox) {
 				w.ShowMessage(r.Error.Error())
 			case *workers.FetchMailboxRes:
 				mv.SetThreads(r.List)
+				mv.FetchNewMessages(r.LastSeenUid)
 			default:
 				App.logger.Error("unknown response type")
 			}
@@ -119,7 +120,7 @@ func (w *Window) onOpenTab(ev *lib.Event) {
 
 func (w *Window) tabViewPort() *views.ViewPort {
 	_, h := w.screen.Size()
-	return views.NewViewPort(w.screen, 0, 2, -1, h-1)
+	return views.NewViewPort(w.screen, 0, 2, -1, h-3)
 }
 func (w *Window) exViewPort() *views.ViewPort {
 	_, h := w.screen.Size()
