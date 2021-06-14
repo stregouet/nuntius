@@ -1,6 +1,8 @@
 package statesmachines
 
 import (
+	"strconv"
+
 	"github.com/stregouet/nuntius/lib"
 	"github.com/stregouet/nuntius/models"
 )
@@ -17,6 +19,15 @@ const (
 type MailboxMachineCtx struct {
 	Threads  []*models.Thread
 	Selected int
+}
+
+func getNblines(ev *lib.Event) int {
+	if args, ok := ev.Payload.(lib.CmdArgs); ok {
+		if line, err := strconv.Atoi(args["line"]); err == nil {
+			return line
+		}
+	}
+	return 1
 }
 
 func NewMailboxMachine() *lib.Machine {
@@ -37,7 +48,7 @@ func NewMailboxMachine() *lib.Machine {
 						Target: STATE_SHOW_MBOX,
 						Action: func(c interface{}, ev *lib.Event) {
 							state := c.(*MailboxMachineCtx)
-							next := state.Selected - 1
+							next := state.Selected - getNblines(ev)
 							if next < 1 {
 								next = 1
 							}
@@ -48,7 +59,7 @@ func NewMailboxMachine() *lib.Machine {
 						Target: STATE_SHOW_MBOX,
 						Action: func(c interface{}, ev *lib.Event) {
 							state := c.(*MailboxMachineCtx)
-							next := state.Selected + 1
+							next := state.Selected + getNblines(ev)
 							if next > len(state.Threads) {
 								next = len(state.Threads)
 							}

@@ -11,9 +11,10 @@ type IRune interface {
 }
 
 type ListWidget struct {
-	lines    []IRune
-	selected int
-	OnSelect func(IRune)
+	lines             []IRune
+	selected          int
+	OnSelect          func(IRune)
+	viewableFirstLine int
 	BaseWidget
 }
 
@@ -50,6 +51,16 @@ func min(a, b int) int {
 
 func (l *ListWidget) SetSelected(s int) {
 	l.selected = s
+	_, h := l.view.Size()
+	if s > (h + l.viewableFirstLine) {
+		diff := s - (h + l.viewableFirstLine)
+		l.ScrollDown(diff)
+		l.viewableFirstLine += diff
+	} else if s < (l.viewableFirstLine + 1) {
+		diff := (l.viewableFirstLine + 1) - s
+		l.ScrollUp(diff)
+		l.viewableFirstLine -= diff
+	}
 	l.AskRedraw()
 }
 
@@ -58,7 +69,7 @@ func (l *ListWidget) Draw() {
 	w, h := v.Size()
 	for y, line := range l.lines {
 		linenum := y + 1
-		if linenum > h {
+		if linenum > (h + 1000000) {
 			break
 		}
 		style := tcell.StyleDefault

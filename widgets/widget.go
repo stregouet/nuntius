@@ -29,6 +29,12 @@ type BaseWidget struct {
 func (b *BaseWidget) SetContent(x int, y int, mainc rune, combc []rune, style tcell.Style) {
 	b.view.SetContent(x, y, mainc, combc, style)
 }
+func (b *BaseWidget) ScrollUp(rows int) {
+	b.view.ScrollUp(rows)
+}
+func (b *BaseWidget) ScrollDown(rows int) {
+	b.view.ScrollDown(rows)
+}
 func (b *BaseWidget) SetViewPort(view *views.ViewPort) {
 	b.view = view
 }
