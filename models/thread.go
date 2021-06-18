@@ -6,7 +6,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/emersion/go-message/mail"
 	"github.com/pkg/errors"
 
 	ndb "github.com/stregouet/nuntius/database"
@@ -29,30 +28,6 @@ func (m *Thread) ToRune() []rune {
 	))
 }
 
-type Mail struct {
-	Id        int
-	Uid       uint32
-	Threadid  int
-	Subject   string
-	Flags     []string
-	MessageId string
-	Mailbox   string
-	InReplyTo string
-	depth     int
-	Date      time.Time
-	Header    *mail.Header
-}
-
-func (m *Mail) ToRune() []rune {
-	return []rune(fmt.Sprintf("%s %s",
-		m.Date.Format("2006-01-02 15:04:05"),
-		m.Subject,
-	))
-}
-
-func (m *Mail) Depth() int {
-	return m.depth
-}
 
 func (m *Mail) hasParent(tx *sql.Tx) (int, error) {
 	row := tx.QueryRow("SELECT threadid FROM mail WHERE messageid = ?", m.InReplyTo)
@@ -252,6 +227,8 @@ WHERE
 	return roots, nil
 }
 
+// given the id of a mail this function returns all of its children in its thread
+// with specific depth for each
 func AllThreadMails(r ndb.Queryer, rootMailId int) ([]*Mail, error) {
 	rows, err := r.Query(`
 WITH RECURSIVE tmp(id, messageid, subject, date, depth) as (
