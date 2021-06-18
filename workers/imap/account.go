@@ -202,6 +202,7 @@ func (a *Account) handleFetchNewMessages(mailbox string, lastseenuid uint32) ([]
 			MessageId: msgid,
 			Date:      m.Envelope.Date,
 			Flags:     m.Flags,
+			Parts:     models.BodyPartsFromImap(m.BodyStructure),
 			Uid:       m.Uid,
 			Header:    header,
 		}

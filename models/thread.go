@@ -2,6 +2,7 @@ package models
 
 import (
 	"database/sql"
+	"encoding/json"
 	"fmt"
 	"strings"
 	"time"
@@ -56,8 +57,16 @@ func (m *Mail) hasChild(tx *sql.Tx) (int, error) {
 }
 
 func (m *Mail) InsertInto(r ndb.Execer, mailbox, accname string) error {
-	_, err := r.Exec(`INSERT INTO mail (subject, messageid, inreplyto, date, threadid, uid, flags, account, mailbox)
-SELECT ?, ?, ?, ?, ?, ?, ?, account.id, mailbox.id
+	parts := []byte("[]")
+	var err error
+	if m.Parts != nil {
+		parts, err = json.Marshal(m.Parts)
+		if err != nil {
+			return err
+		}
+	}
+	_, err = r.Exec(`INSERT INTO mail (subject, messageid, inreplyto, date, threadid, uid, flags, parts, account, mailbox)
+SELECT ?, ?, ?, ?, ?, ?, ?, ?, account.id, mailbox.id
 FROM
   mailbox
   JOIN account on account.id = mailbox.account
@@ -70,6 +79,7 @@ ON CONFLICT (uid, mailbox) DO UPDATE SET flags=excluded.flags`,
 		m.Threadid,
 		m.Uid,
 		strings.Join(m.Flags, ","),
+		parts,
 		mailbox,
 		accname,
 	)

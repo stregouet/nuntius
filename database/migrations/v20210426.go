@@ -29,6 +29,7 @@ func init() {
 				date datetime,
 				uid INTEGER,
 				flags TEXT,
+				parts TEXT,
 				subject TEXT,
 				messageid TEXT,
 				inreplyto TEXT,
