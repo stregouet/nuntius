@@ -112,16 +112,10 @@ func (a *Account) Run(responses chan<- workers.Message) {
 			}
 			postResponse(r, msg.GetId())
 		case *workers.FetchNewMessages:
-			result, err := a.handleFetchNewMessages(msg.Mailbox, msg.LastSeenUid)
-			var r workers.Message
+			r, err := a.handleFetchNewMessages(msg)
 			if err != nil {
 				a.logger.Warnf("error fetching new messages %v", err)
 				r = &workers.Error{Error: errors.New("error requesting imap server")}
-			} else {
-				r = &workers.FetchNewMessagesRes{
-					Mailbox: msg.Mailbox,
-					Mails:   result,
-				}
 			}
 			postResponse(r, msg.GetId())
 		case *workers.FetchMailbox:
@@ -142,8 +136,8 @@ func (a *Account) Run(responses chan<- workers.Message) {
 }
 
 // fetch new messages following strategy described in rfc4549#section-4.3.1
-func (a *Account) handleFetchNewMessages(mailbox string, lastseenuid uint32) ([]*models.Mail, error) {
-	err := a.selectMbox(mailbox)
+func (a *Account) handleFetchNewMessages(msg *workers.FetchNewMessages) (workers.Message, error) {
+	err := a.selectMbox(msg.Mailbox)
 	if err != nil {
 		return nil, err
 	}
@@ -164,9 +158,9 @@ func (a *Account) handleFetchNewMessages(mailbox string, lastseenuid uint32) ([]
 	}
 	result := make([]*models.Mail, 0)
 	var set imap.SeqSet
-	set.AddRange(lastseenuid+1, 0)
+	set.AddRange(msg.LastSeenUid+1, 0)
 	err = fetch(a.c, &set, items, func(m *imap.Message) error {
-		if m.Uid <= lastseenuid {
+		if m.Uid <= msg.LastSeenUid {
 			// already known messages, and here we are only interested in new
 			// messages
 			return nil
@@ -192,7 +186,12 @@ func (a *Account) handleFetchNewMessages(mailbox string, lastseenuid uint32) ([]
 		}
 		msgid, err := header.MessageID()
 		if err != nil {
-			a.logger.Errorf("cannot parse messageid, %v", err)
+			a.logger.Errorf(
+				"cannot parse messageid (id: %s, subject: %s, date: %s) %v",
+				m.Envelope.MessageId,
+				m.Envelope.Subject,
+				m.InternalDate,
+				err)
 			return PARSE_IMAP_ERR
 		}
 
@@ -212,8 +211,11 @@ func (a *Account) handleFetchNewMessages(mailbox string, lastseenuid uint32) ([]
 	if err != nil {
 		return nil, err
 	}
-
-	return result, nil
+	r := &workers.FetchNewMessagesRes{
+		Mailbox: msg.Mailbox,
+		Mails:   result,
+	}
+	return r, nil
 }
 
 func (a *Account) handleFetchMailbox(mailbox string) ([]*models.Mail, error) {
