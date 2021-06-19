@@ -7,6 +7,10 @@ type Message interface {
 	SetId(i int)
 	GetAccName() string
 	SetAccName(accname string)
+}
+
+type ClonableMessage interface {
+	Message
 	Clone() Message
 }
 
@@ -42,41 +46,25 @@ type MsgToDb struct {
 	Wrapped Message
 }
 
-func (m *MsgToDb) Clone() Message {
-	return &MsgToDb{m.CloneBase(), m.Wrapped.Clone()}
-}
-
 type Done struct {
 	BaseMessage
 }
 
-func (m *Done) Clone() Message {
-	return &Done{m.CloneBase()}
-}
 
 type Error struct {
 	BaseMessage
 	Error error
 }
 
-func (m *Error) Clone() Message {
-	return &Error{m.CloneBase(), m.Error}
-}
 
 type FetchThread struct {
 	BaseMessage
 	RootId       int
 }
-func (m *FetchThread) Clone() Message {
-	return &FetchThread{m.CloneBase(), m.RootId}
-}
 
 type FetchThreadRes struct {
 	BaseMessage
 	Mails        []*models.Mail
-}
-func (m *FetchThreadRes) Clone() Message {
-	return &FetchThreadRes{m.CloneBase(), m.Mails}
 }
 
 type FetchMailboxRes struct {
@@ -85,18 +73,11 @@ type FetchMailboxRes struct {
 	LastSeenUid uint32
 }
 
-func (m *FetchMailboxRes) Clone() Message {
-	return &FetchMailboxRes{m.CloneBase(), m.List, m.LastSeenUid}
-}
 
 type FetchNewMessages struct {
 	BaseMessage
 	Mailbox     string
 	LastSeenUid uint32
-}
-
-func (m *FetchNewMessages) Clone() Message {
-	return &FetchNewMessages{m.CloneBase(), m.Mailbox, m.LastSeenUid}
 }
 
 type FetchNewMessagesRes struct {
@@ -105,27 +86,15 @@ type FetchNewMessagesRes struct {
 	Mails   []*models.Mail
 }
 
-func (m *FetchNewMessagesRes) Clone() Message {
-	return &FetchNewMessagesRes{m.CloneBase(), m.Mailbox, m.Mails}
-}
-
 type InsertNewMessages struct {
 	BaseMessage
 	Mailbox string
 	Mails   []*models.Mail
 }
 
-func (m *InsertNewMessages) Clone() Message {
-	return &InsertNewMessages{m.CloneBase(), m.Mailbox, m.Mails}
-}
-
 type InsertNewMessagesRes struct {
 	BaseMessage
 	Threads []*models.Thread
-}
-
-func (m *InsertNewMessagesRes) Clone() Message {
-	return &InsertNewMessagesRes{m.CloneBase(), m.Threads}
 }
 
 type FetchMailboxImapRes struct {
@@ -134,17 +103,9 @@ type FetchMailboxImapRes struct {
 	Mails   []*models.Mail
 }
 
-func (m *FetchMailboxImapRes) Clone() Message {
-	return &FetchMailboxImapRes{m.CloneBase(), m.Mailbox, m.Mails}
-}
-
 type FetchMailbox struct {
 	BaseMessage
 	Mailbox string
-}
-
-func (m *FetchMailbox) Clone() Message {
-	return &FetchMailbox{m.CloneBase(), m.Mailbox}
 }
 
 type FetchMailboxesRes struct {
@@ -152,18 +113,11 @@ type FetchMailboxesRes struct {
 	Mailboxes []*models.Mailbox
 }
 
-func (m *FetchMailboxesRes) Clone() Message {
-	return &FetchMailboxesRes{m.CloneBase(), m.Mailboxes}
-}
-
 type FetchMailboxesImapRes struct {
 	BaseMessage
 	Mailboxes []*models.Mailbox
 }
 
-func (m *FetchMailboxesImapRes) Clone() Message {
-	return &FetchMailboxesImapRes{m.CloneBase(), m.Mailboxes}
-}
 
 type FetchMailboxes struct {
 	BaseMessage
@@ -177,6 +131,3 @@ type ConnectImap struct {
 	BaseMessage
 }
 
-func (m *ConnectImap) Clone() Message {
-	return &ConnectImap{m.CloneBase()}
-}

@@ -139,7 +139,7 @@ func (app *Application) PostImapMessage(msg workers.Message, accountname string,
 	app.imap.PostMessage(msg)
 }
 
-func (app *Application) PostMessage(m workers.Message, accountname string, f PostCallback) {
+func (app *Application) PostMessage(m workers.ClonableMessage, accountname string, f PostCallback) {
 	app.PostDbMessage(m.Clone(), accountname, f)
 	app.PostImapMessage(m, accountname, func(res workers.Message) error {
 		if res, ok := res.(*workers.MsgToDb); ok {
