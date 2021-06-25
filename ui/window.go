@@ -108,8 +108,8 @@ func (w *Window) onSelectMailbox(acc string, mailbox *models.Mailbox) {
 	w.machine.Send(&lib.Event{sm.TR_OPEN_TAB, &sm.Tab{mv, mailbox.TabTitle()}})
 }
 
-func (w *Window) onSelectThread(acc string, thread *models.Thread) {
-	tv := NewThreadView(acc, w.bindings[config.KEY_MODE_THREAD], w.onSelectMail)
+func (w *Window) onSelectThread(acc, mailbox string, thread *models.Thread) {
+	tv := NewThreadView(acc, mailbox, w.bindings[config.KEY_MODE_THREAD], w.onSelectMail)
 	App.PostDbMessage(
 		&workers.FetchThread{RootId: thread.RootId},
 		acc,
@@ -127,8 +127,26 @@ func (w *Window) onSelectThread(acc string, thread *models.Thread) {
 	w.machine.Send(&lib.Event{sm.TR_OPEN_TAB, &sm.Tab{tv, thread.Subject}})
 }
 
-func (w *Window) onSelectMail(acc string, mail *models.Mail) {
-	mv := NewMailView(w.bindings[config.KEY_MODE_MAIL])
+func (w *Window) onSelectMail(acc, mailbox string, mail *models.Mail) {
+	mv := NewMailView(w.bindings[config.KEY_MODE_MAIL], w.bindings[config.KEY_MODE_PARTS], mail)
+	mv.OnSetViewPort(func(view *views.ViewPort) {
+		mv.SetPartsView(view)
+	})
+	App.PostImapMessage(
+		&workers.FetchFullMail{Uid: mail.Uid, Mailbox: mailbox},
+		acc,
+		func(response workers.Message) error {
+			switch r := response.(type) {
+			case *workers.Error:
+				w.ShowMessage(r.Error.Error())
+			case *workers.FetchFullMailRes:
+				mv.SetFilepath(r.Filepath)
+				App.logger.Debugf("full mail received, `%v`", r.Filepath)
+			default:
+				App.logger.Error("unknown response type")
+			}
+			return nil
+		})
 	w.machine.Send(&lib.Event{sm.TR_OPEN_TAB, &sm.Tab{mv, mail.Subject}})
 }
 

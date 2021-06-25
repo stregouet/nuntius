@@ -14,14 +14,14 @@ type ThreadView struct {
 	*widgets.TreeWidget
 }
 
-func NewThreadView(accname string, bindings config.Mapping, onSelect func(accname string, m *models.Mail)) *ThreadView {
+func NewThreadView(accname, mailbox string, bindings config.Mapping, onSelect func(accname, mailbox string, m *models.Mail)) *ThreadView {
 	t := widgets.NewTree()
 	machine := sm.NewThreadMachine()
 	machine.OnTransition(func(s lib.StateType, ctx interface{}, ev *lib.Event) {
 		state := ctx.(*sm.ThreadMachineCtx)
 		switch ev.Transition {
 		case sm.TR_SELECT_MAIL:
-			onSelect(accname, state.Mails[state.Selected-1])
+			onSelect(accname, mailbox, state.Mails[state.Selected-1])
 		case sm.TR_UP_MAIL, sm.TR_DOWN_MAIL:
 			t.SetSelected(state.Selected)
 		}

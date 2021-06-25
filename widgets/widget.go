@@ -23,6 +23,7 @@ type Widget interface {
 
 type BaseWidget struct {
 	redrawCb func()
+	viewCb func(view *views.ViewPort)
 	view     *views.ViewPort
 }
 
@@ -37,6 +38,9 @@ func (b *BaseWidget) ScrollDown(rows int) {
 }
 func (b *BaseWidget) SetViewPort(view *views.ViewPort) {
 	b.view = view
+	if b.viewCb != nil {
+		b.viewCb(view)
+	}
 }
 func (b *BaseWidget) GetViewPort() *views.ViewPort {
 	return b.view
@@ -44,6 +48,11 @@ func (b *BaseWidget) GetViewPort() *views.ViewPort {
 
 func (b *BaseWidget) Clear() {
 	b.view.Clear()
+}
+
+
+func (b *BaseWidget) OnSetViewPort(f func(view *views.ViewPort)) {
+	b.viewCb = f
 }
 
 func (b *BaseWidget) AskingRedraw(f func()) {

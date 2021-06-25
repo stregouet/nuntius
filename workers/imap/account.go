@@ -1,9 +1,12 @@
 package imap
 
 import (
+	"io"
 	"bufio"
 	"fmt"
+	"os"
 	"os/exec"
+	"path"
 	"strings"
 	"time"
 
@@ -118,6 +121,13 @@ func (a *Account) Run(responses chan<- workers.Message) {
 				r = &workers.Error{Error: errors.New("error requesting imap server")}
 			}
 			postResponse(r, msg.GetId())
+		case *workers.FetchFullMail:
+			r, err := a.handleFetchFullMail(msg)
+			if err != nil {
+				a.logger.Warnf("error fetching full message %v", err)
+				r = &workers.Error{Error: errors.New("error requesting imap server")}
+			}
+			postResponse(r, msg.GetId())
 		case *workers.FetchMailbox:
 			result, err := a.handleFetchMailbox(msg.Mailbox)
 			var r workers.Message
@@ -133,6 +143,52 @@ func (a *Account) Run(responses chan<- workers.Message) {
 			postResponse(r, msg.GetId())
 		}
 	}
+}
+
+func (a *Account) handleFetchFullMail(msg *workers.FetchFullMail) (workers.Message, error) {
+	err := a.selectMbox(msg.Mailbox)
+	if err != nil {
+		return nil, err
+	}
+	section := &imap.BodySectionName{Peek: true}
+	items := []imap.FetchItem{
+		imap.FetchEnvelope,
+		imap.FetchFlags,
+		imap.FetchUid,
+		section.FetchItem(),
+	}
+	r := &workers.FetchFullMailRes{
+		Filepath: fmt.Sprintf("/tmp/nuntius/%s/%d.mail", msg.Mailbox, msg.Uid),
+	}
+	if _, err := os.Stat(r.Filepath); os.IsNotExist(err) {
+		if _, err := os.Stat(path.Dir(r.Filepath)); os.IsNotExist(err) {
+			if err := os.MkdirAll(path.Dir(r.Filepath), 0755); err != nil {
+				return nil, err
+			}
+		}
+	} else {
+		return r, nil
+	}
+	err = fetch(a.c, toSeqSet([]uint32{msg.Uid}), items, func(m *imap.Message) error {
+		body := m.GetBody(section)
+		if body == nil {
+			return fmt.Errorf("could not get section %#v", section)
+		}
+		f, err := os.OpenFile(r.Filepath, os.O_CREATE|os.O_WRONLY, 0644)
+		if err != nil {
+			return err
+		}
+		defer f.Close()
+		_, err = io.Copy(f, body)
+		if err != nil {
+			return err
+		}
+		return nil
+	})
+	if err != nil {
+		return nil, err
+	}
+	return r, nil
 }
 
 // fetch new messages following strategy described in rfc4549#section-4.3.1

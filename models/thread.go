@@ -241,12 +241,14 @@ WHERE
 // with specific depth for each
 func AllThreadMails(r ndb.Queryer, rootMailId int) ([]*Mail, error) {
 	rows, err := r.Query(`
-WITH RECURSIVE tmp(id, messageid, subject, date, depth) as (
+WITH RECURSIVE tmp(id, messageid, subject, date, uid, parts, depth) as (
     SELECT
       mail.id,
       messageid,
 	  subject,
 	  date,
+	  uid,
+	  parts,
 	  0 as depth
     FROM mail
     WHERE mail.id = ?
@@ -256,11 +258,13 @@ WITH RECURSIVE tmp(id, messageid, subject, date, depth) as (
       this.messageid,
 	  this.subject,
 	  this.date,
+	  this.uid,
+	  this.parts,
 	  prior.depth + 1 as depth
     FROM
       tmp prior
       INNER JOIN mail this ON this.inreplyto = prior.messageid
-) select id, subject, date, depth from tmp`, rootMailId)
+) select id, subject, date, uid, parts, depth from tmp`, rootMailId)
 	if err != nil {
 		return nil, err
 	}
@@ -270,12 +274,19 @@ WITH RECURSIVE tmp(id, messageid, subject, date, depth) as (
 		var id int
 		var subject string
 		var date time.Time
+		var uid uint32
 		var depth int
-		err = rows.Scan(&id, &subject, &date, &depth)
+		var rawparts []byte
+		err = rows.Scan(&id, &subject, &date, &uid, &rawparts, &depth)
 		if err != nil {
 			return nil, err
 		}
-		m := &Mail{Id: id, Subject: subject, depth: depth, Date: date}
+		var parts []*BodyPart
+		err = json.Unmarshal(rawparts, &parts)
+		if err != nil {
+			return nil, err
+		}
+		m := &Mail{Id: id, Subject: subject, depth: depth, Date: date, Uid: uid, Parts: parts}
 		roots = append(roots, m)
 	}
 	return roots, nil

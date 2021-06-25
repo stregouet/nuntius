@@ -22,14 +22,14 @@ type MailboxView struct {
 	*widgets.ListWidget
 }
 
-func NewMailboxView(accountName, mboxName string, bindings config.Mapping, onSelect func(accname string, t *models.Thread)) *MailboxView {
+func NewMailboxView(accountName, mboxName string, bindings config.Mapping, onSelect func(accname, mailbox string, t *models.Thread)) *MailboxView {
 	machine := sm.NewMailboxMachine()
 	l := widgets.NewList()
 	machine.OnTransition(func(s lib.StateType, ctx interface{}, ev *lib.Event) {
 		state := ctx.(*sm.MailboxMachineCtx)
 		switch ev.Transition {
 		case sm.TR_SELECT_THREAD:
-			onSelect(accountName, state.Threads[state.Selected-1])
+			onSelect(accountName, mboxName, state.Threads[state.Selected-1])
 		case sm.TR_UP_THREAD, sm.TR_DOWN_THREAD:
 			l.SetSelected(state.Selected)
 		}

@@ -12,6 +12,7 @@ import (
 
 type BodyPath string
 
+
 func (bp BodyPath) ToMessagePath() ([]int, error) {
 	s := strings.TrimPrefix(string(bp), "/")
     if s == "" {
@@ -45,6 +46,17 @@ type BodyPart struct {
 	Path        BodyPath `json:"path"`
 	MIMEType    string   `json:"mimetype"`
 	MIMESubType string   `json:"mimesubtype"`
+}
+
+func (bp *BodyPart) Depth() int {
+	if bp.Path == "/" {
+		return 0
+	}
+	return strings.Count(string(bp.Path), "/")
+}
+
+func (bp *BodyPart) ToRune() []rune {
+	return []rune(fmt.Sprintf("%s/%s (%s)", bp.MIMEType, bp.MIMESubType, bp.Path))
 }
 
 func bodyPartsFromImapParts(bs *imap.BodyStructure, parts []*BodyPart, path []int) []*BodyPart {
@@ -90,4 +102,28 @@ func (m *Mail) ToRune() []rune {
 
 func (m *Mail) Depth() int {
 	return m.depth
+}
+
+func (m *Mail) FindPlaintext() *BodyPath {
+	if m.Parts == nil || len(m.Parts) == 0 {
+		return nil
+	}
+	for _, p := range m.Parts {
+		if p.MIMEType == "text" && p.MIMESubType == "plain" {
+			return &p.Path
+		}
+	}
+	return nil
+}
+
+func (m *Mail) FindFirstNonMultipart() *BodyPath {
+	if m.Parts == nil || len(m.Parts) == 0 {
+		return nil
+	}
+	for _, p := range m.Parts {
+		if p.MIMEType != "multipart" {
+			return &p.Path
+		}
+	}
+	return nil
 }

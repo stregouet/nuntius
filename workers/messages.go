@@ -1,6 +1,8 @@
 package workers
 
-import "github.com/stregouet/nuntius/models"
+import (
+	"github.com/stregouet/nuntius/models"
+)
 
 type Message interface {
 	GetId() int
@@ -71,6 +73,17 @@ type FetchMailboxRes struct {
 	BaseMessage
 	List        []*models.Thread
 	LastSeenUid uint32
+}
+
+type FetchFullMail struct {
+	BaseMessage
+	Mailbox  string
+	Uid      uint32
+}
+
+type FetchFullMailRes struct {
+	BaseMessage
+	Filepath string
 }
 
 

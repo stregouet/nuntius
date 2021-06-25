@@ -34,6 +34,12 @@ func NewTree() *TreeWidget {
 	}
 }
 
+func NewTreeWithInitSelected(init int) *TreeWidget {
+	t := NewTree()
+	t.selected = init
+	return t
+}
+
 func (t *TreeWidget) ClearLines() {
 	t.lines = make([]ITreeLine, 0)
 }
