@@ -13,6 +13,7 @@ type Widget interface {
 	SetViewPort(view *views.ViewPort, screen tcell.Screen)
 	GetViewPort() *views.ViewPort
 	SetContent(x int, y int, mainc rune, combc []rune, style tcell.Style)
+	IsActiveTerm() bool
 
 	AskRedraw()
 	AskingRedraw(func())
@@ -83,4 +84,7 @@ func (b *BaseWidget) ShowCursor(x int, y int) {
 		physx, physy, _, _ := b.view.GetPhysical()
 		b.screen.ShowCursor(x+physx, y+physy)
 	}
+}
+func (b *BaseWidget) IsActiveTerm() bool {
+	return false
 }

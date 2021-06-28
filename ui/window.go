@@ -231,6 +231,11 @@ func (w *Window) HandleEvent(ev tcell.Event) bool {
 		// in write_cmd state always forward event to ex
 		return w.ex.HandleEvent(ks)
 	} else {
+		s := w.state()
+		curTab := s.Tabs[s.SelectedTab]
+		if curTab.Content.IsActiveTerm() {
+			return curTab.Content.HandleEvent(ks)
+		}
 		// first check if this event refer toa global command
 		if cmd := w.bindings[config.KEY_MODE_GLOBAL].FindCommand(ks); cmd != "" {
 			// this is global command, so window should try to handle it
@@ -246,8 +251,7 @@ func (w *Window) HandleEvent(ev tcell.Event) bool {
 		}
 		// either not a global command or this tcell event does not translate
 		// to an application machine event
-		s := w.state()
-		return s.Tabs[s.SelectedTab].Content.HandleEvent(ks)
+		return curTab.Content.HandleEvent(ks)
 	}
 	return false
 }
