@@ -40,7 +40,6 @@ func NewWindow(cfg []*config.Account, bindings config.Keybindings) *Window {
 			w.onOpenTab(ev)
 			w.AskRedraw()
 		case sm.TR_NEXT_TAB, sm.TR_PREV_TAB, sm.TR_CLOSE_TAB:
-			w.screen.Clear()
 			w.AskRedraw()
 		}
 	})

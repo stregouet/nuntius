@@ -109,6 +109,7 @@ func (mv *MailView) state() *sm.MailMachineCtx {
 }
 
 func (mv *MailView) Draw() {
+	mv.Clear()
 	style := tcell.StyleDefault
 	if mv.machine.Current == sm.STATE_LOAD_MAIL {
 		for i, c := range "loading..." {

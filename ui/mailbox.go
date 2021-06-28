@@ -99,6 +99,7 @@ func (mv *MailboxView) insertDb(mails []*models.Mail) {
 }
 
 func (mv *MailboxView) Draw() {
+	mv.Clear()
 	if mv.machine.Current == sm.STATE_LOAD_MBOX {
 		style := tcell.StyleDefault
 		for i, c := range "loading..." {

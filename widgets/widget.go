@@ -47,7 +47,9 @@ func (b *BaseWidget) GetViewPort() *views.ViewPort {
 }
 
 func (b *BaseWidget) Clear() {
-	b.view.Clear()
+	if b.view != nil {
+		b.view.Clear()
+	}
 }
 
 
@@ -59,7 +61,6 @@ func (b *BaseWidget) AskingRedraw(f func()) {
 	b.redrawCb = f
 }
 func (b *BaseWidget) AskRedraw() {
-	b.Clear()
 	if b.redrawCb != nil {
 		b.redrawCb()
 	}

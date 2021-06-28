@@ -41,6 +41,7 @@ func NewMailboxesView(accountName string, bindings config.Mapping, onSelect func
 	}
 }
 func (mv *MailboxesView) Draw() {
+	mv.Clear()
 	if mv.machine.Current == sm.STATE_LOAD_MBOXES {
 		style := tcell.StyleDefault
 		for i, c := range "loading..." {

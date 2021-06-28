@@ -68,6 +68,7 @@ func samelevelInNextlines(nextlines []ITreeLine, level int) bool {
 }
 
 func (t *TreeWidget) Draw() {
+	t.Clear()
 	v := t.view
 	w, h := v.Size()
 	for y, line := range t.lines {
