@@ -3,6 +3,7 @@ package widgets
 import (
 	"github.com/gdamore/tcell/v2"
 	"github.com/gdamore/tcell/v2/views"
+	"github.com/mattn/go-runewidth"
 
 	"github.com/stregouet/nuntius/lib"
 )
@@ -87,4 +88,37 @@ func (b *BaseWidget) ShowCursor(x int, y int) {
 }
 func (b *BaseWidget) IsActiveTerm() bool {
 	return false
+}
+
+func (b *BaseWidget) Print(x, y int, style tcell.Style, str string) int {
+	width, height := b.view.Size()
+
+	old_x := x
+
+	newline := func() bool {
+		x = old_x
+		y++
+		return y < height
+	}
+	for _, ch := range str {
+		switch ch {
+		case '\n':
+			if !newline() {
+				return runewidth.StringWidth(str)
+			}
+		case '\r':
+			x = old_x
+		default:
+			crunes := []rune{}
+			b.SetContent(x, y, ch, crunes, style)
+			x += runewidth.RuneWidth(ch)
+			if x == old_x+width {
+				if !newline() {
+					return runewidth.StringWidth(str)
+				}
+			}
+		}
+	}
+
+	return runewidth.StringWidth(str)
 }

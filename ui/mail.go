@@ -76,16 +76,9 @@ func (mv *MailView) drawHeader(header message.Header, offset int) int {
 	for _, key := range []string{"from", "to", "cc", "message-id", "in-reply-to", "subject"} {
 		value, err := header.Text(key)
 		if value != "" && err == nil {
-			col := 0
-			for _, c := range []rune(key) {
-				mv.SetContent(col, line, c, nil, bold)
-				col++
-			}
+			col := mv.Print(0, line, bold, key)
 			col += 2
-			for _, c := range []rune(value) {
-				mv.SetContent(col, line, c, nil, style)
-				col++
-			}
+			mv.Print(col, line, style, value)
 			line++
 		}
 	}
@@ -97,9 +90,7 @@ func (mv *MailView) drawBody(body io.Reader, lineoffset int) {
 	s := bufio.NewScanner(body)
 	line := lineoffset + 1
 	for s.Scan() {
-		for col, c := range []rune(s.Text()) {
-			mv.SetContent(col, line, c, nil, style)
-		}
+		mv.Print(0, line, style, s.Text())
 		line++
 	}
 }
@@ -112,9 +103,7 @@ func (mv *MailView) Draw() {
 	mv.Clear()
 	style := tcell.StyleDefault
 	if mv.machine.Current == sm.STATE_LOAD_MAIL {
-		for i, c := range "loading..." {
-			mv.SetContent(i, 0, c, nil, style)
-		}
+		mv.Print(0, 0, style, "loading...")
 	} else if mv.machine.Current == sm.STATE_SHOW_MAIL_PARTS {
 		mv.partsView.Draw()
 	} else {
@@ -152,9 +141,7 @@ func (mv *MailView) Draw() {
 			mv.drawBody(body, offset)
 		} else {
 			App.logger.Debug("cannot find text/plain body")
-			for i, c := range state.Filepath {
-				mv.SetContent(i, 0, c, nil, style)
-			}
+			mv.Print(0, 0, style, state.Filepath)
 		}
 	}
 }

@@ -102,9 +102,7 @@ func (mv *MailboxView) Draw() {
 	mv.Clear()
 	if mv.machine.Current == sm.STATE_LOAD_MBOX {
 		style := tcell.StyleDefault
-		for i, c := range "loading..." {
-			mv.SetContent(i, 0, c, nil, style)
-		}
+		mv.Print(0, 0, style, "loading...")
 	} else {
 		mv.ListWidget.Draw()
 	}

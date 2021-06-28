@@ -44,9 +44,7 @@ func (mv *MailboxesView) Draw() {
 	mv.Clear()
 	if mv.machine.Current == sm.STATE_LOAD_MBOXES {
 		style := tcell.StyleDefault
-		for i, c := range "loading..." {
-			mv.SetContent(i, 0, c, nil, style)
-		}
+		mv.Print(0, 0, style, "loading...")
 	} else {
 		mv.TreeWidget.Draw()
 	}
