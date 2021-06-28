@@ -156,7 +156,7 @@ func (w *Window) onOpenTab(ev *lib.Event) {
 	})
 	if w.screen != nil {
 		w.screen.Clear()
-		tab.Content.SetViewPort(w.tabViewPort())
+		tab.Content.SetViewPort(w.tabViewPort(), w.screen)
 	}
 }
 
@@ -195,10 +195,10 @@ func (w *Window) Redraw() {
 func (w *Window) Size() (int, int) { return w.screen.Size() }
 func (w *Window) SetScreen(s tcell.Screen) {
 	w.screen = s
-	w.ex.SetViewPort(w.exViewPort())
+	w.ex.SetViewPort(w.exViewPort(), s)
 	state := w.state()
 	for _, t := range state.Tabs {
-		t.Content.SetViewPort(w.tabViewPort())
+		t.Content.SetViewPort(w.tabViewPort(), s)
 	}
 }
 func (w *Window) Draw() {

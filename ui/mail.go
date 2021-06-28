@@ -55,7 +55,7 @@ func NewMailView(bindings config.Mapping, partsBindings config.Mapping, mail *mo
 }
 
 func (mv *MailView) SetPartsView(view *views.ViewPort) {
-	mv.partsView.SetViewPort(view)
+	mv.partsView.SetViewPort(view, nil)
 }
 
 func (mv *MailView) onSelectPart(path models.BodyPath) {

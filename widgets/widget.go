@@ -10,7 +10,7 @@ import (
 type Widget interface {
 	HandleEvent(ks []*lib.KeyStroke) bool
 	Draw()
-	SetViewPort(view *views.ViewPort)
+	SetViewPort(view *views.ViewPort, screen tcell.Screen)
 	GetViewPort() *views.ViewPort
 	SetContent(x int, y int, mainc rune, combc []rune, style tcell.Style)
 
@@ -25,6 +25,7 @@ type BaseWidget struct {
 	redrawCb func()
 	viewCb func(view *views.ViewPort)
 	view     *views.ViewPort
+	screen   tcell.Screen
 }
 
 func (b *BaseWidget) SetContent(x int, y int, mainc rune, combc []rune, style tcell.Style) {
@@ -36,7 +37,8 @@ func (b *BaseWidget) ScrollUp(rows int) {
 func (b *BaseWidget) ScrollDown(rows int) {
 	b.view.ScrollDown(rows)
 }
-func (b *BaseWidget) SetViewPort(view *views.ViewPort) {
+func (b *BaseWidget) SetViewPort(view *views.ViewPort, screen tcell.Screen) {
+	b.screen = screen
 	b.view = view
 	if b.viewCb != nil {
 		b.viewCb(view)
@@ -69,4 +71,16 @@ func (b *BaseWidget) Resize() {
 }
 func (b *BaseWidget) Size() (int, int) {
 	return 0, 0
+}
+
+func (b *BaseWidget) HideCursor() {
+	if b.screen != nil {
+		b.screen.HideCursor()
+	}
+}
+func (b *BaseWidget) ShowCursor(x int, y int) {
+	if b.screen != nil && b.view != nil {
+		physx, physy, _, _ := b.view.GetPhysical()
+		b.screen.ShowCursor(x+physx, y+physy)
+	}
 }
