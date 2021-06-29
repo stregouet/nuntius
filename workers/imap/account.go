@@ -5,7 +5,6 @@ import (
 	"bufio"
 	"fmt"
 	"os"
-	"os/exec"
 	"path"
 	"strings"
 	"time"
@@ -41,12 +40,12 @@ func NewAccount(l *lib.Logger, c *config.Account) *Account {
 	}
 }
 
-func (a *Account) getPass() (string, error) {
-	out, err := exec.Command("sh", "-c", a.cfg.Imap.PassCmd).Output()
-	if err != nil {
-		return "", errors.Wrap(err, "cannot exec passcmd")
-	}
-	return strings.TrimRight(string(out), "\n"), nil
+func (a *Account) getImapPass() (string, error) {
+	return getPass(a.cfg.Imap.PassCmd)
+}
+
+func (a *Account) getSmtpPass() (string, error) {
+	return getPass(a.cfg.Smtp.PassCmd)
 }
 
 func (a *Account) connect() error {
@@ -54,7 +53,7 @@ func (a *Account) connect() error {
 	if a.cfg.Imap.Tls {
 		a.c, err = client.DialTLS(fmt.Sprintf("%s:%d", a.cfg.Imap.Host, a.cfg.Imap.Port), nil)
 	}
-	p, err := a.getPass()
+	p, err := a.getImapPass()
 	if err != nil {
 		return err
 	}
@@ -86,6 +85,7 @@ func (a *Account) selectMbox(mailbox string) error {
 }
 
 func (a *Account) Run(responses chan<- workers.Message) {
+	defer lib.Recover(a.logger, nil)
 	defer a.terminate()
 	postResponse := func(msg workers.Message, id int) {
 		msg.SetId(id)
@@ -103,6 +103,15 @@ func (a *Account) Run(responses chan<- workers.Message) {
 				r = &workers.MsgToDb{Wrapped: &workers.FetchMailboxesImapRes{
 					Mailboxes: result,
 				}}
+			}
+			postResponse(r, msg.GetId())
+		case *workers.SendMail:
+			var r workers.Message
+			if err := a.handleSendMail(msg); err != nil {
+				a.logger.Warnf("error sending mail %v", err)
+				r = &workers.Error{Error: errors.New("error sending mail")}
+			} else {
+				r = &workers.Done{}
 			}
 			postResponse(r, msg.GetId())
 		case *workers.ConnectImap:
@@ -378,4 +387,72 @@ func (a *Account) handleFetchMailboxes(msg *workers.FetchMailboxes) ([]*models.M
 		return nil, err
 	}
 	return result, nil
+}
+
+func (a *Account) handleSendMail(msg *workers.SendMail) error {
+	cfg := a.cfg.Smtp
+	conn, err := connectSmtps(cfg.Host, cfg.Port)
+	if err != nil {
+		return err
+	}
+	defer conn.Close()
+	password, err := a.getSmtpPass()
+	if err != nil {
+		return err
+	}
+	saslclient, err := newSaslClient(cfg.Auth, cfg.User, password)
+	if err != nil {
+		return err
+	}
+	if saslclient != nil {
+		if err := conn.Auth(saslclient); err != nil {
+			return errors.Wrap(err, "while issuing auth cmd")
+		}
+	}
+
+	m, err := message.Read(msg.Body)
+	if err != nil {
+		return err
+	}
+	header := &mail.Header{message.Header{m.Header.Header}}
+	from, err := header.AddressList("from")
+	if err != nil {
+		return errors.Wrap(err, "addresslist `from`")
+	}
+
+	if err := conn.Mail(from[0].Address, nil); err != nil {
+		return errors.Wrap(err, "while issuing mail cmd")
+	}
+	rcpts, err := listRecipients(header)
+	if err != nil {
+		return errors.Wrap(err, "addresslist rcpts")
+	}
+	for _, rcpt := range rcpts {
+		if err := conn.Rcpt(rcpt.Address); err != nil {
+			return errors.Wrap(err, "while issuing rcpt cmd")
+		}
+	}
+	writer, err := conn.Data()
+	if err != nil {
+		return errors.Wrap(err, "while issuing data cmd")
+	}
+	defer writer.Close()
+
+
+	header.SetContentType("text/plain", map[string]string{"charset": "UTF-8"})
+	w, err := mail.CreateSingleInlineWriter(writer, *header)
+	if err != nil {
+		return errors.Wrap(err, "CreateSingleInlineWriter")
+	}
+	defer w.Close()
+	if _, err := io.Copy(w, m.Body); err != nil {
+		return errors.Wrap(err, "io.Copy")
+	}
+
+	err = conn.Quit()
+	if err != nil {
+		return err
+	}
+
+	return nil
 }

@@ -15,9 +15,20 @@ type ImapCfg struct {
 	PassCmd string
 }
 
+type SmtpCfg struct {
+	Port    uint16
+	Host    string
+	User    string
+	Tls     bool
+	PassCmd string
+	// either plain, login, none
+	Auth    string
+}
+
 type Account struct {
 	Name string
 	Imap *ImapCfg
+	Smtp *SmtpCfg
 }
 
 type Config struct {

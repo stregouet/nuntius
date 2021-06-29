@@ -58,6 +58,7 @@ func (d *Database) setup(db *sql.DB) error {
 }
 
 func (d *Database) Run() {
+	defer lib.Recover(d.logger, nil)
 	db, err := sql.Open("sqlite3", "sqlite.db")
 	if err != nil {
 		d.logger.Errorf("cannot open db %v", err)

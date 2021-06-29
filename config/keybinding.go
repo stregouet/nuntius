@@ -15,16 +15,17 @@ type Mapping map[string]Command
 type Keybindings map[KeyMode]Mapping
 
 const (
-	KEY_MODE_SEARCH KeyMode = "search"
-	KEY_MODE_THREAD KeyMode = "thread"
-	KEY_MODE_GLOBAL KeyMode = "global"
-	KEY_MODE_MBOXES KeyMode = "mboxes"
-	KEY_MODE_MBOX   KeyMode = "mbox"
-	KEY_MODE_MAIL   KeyMode = "mail"
-	KEY_MODE_PARTS  KeyMode = "parts"
+	KEY_MODE_SEARCH  KeyMode = "search"
+	KEY_MODE_THREAD  KeyMode = "thread"
+	KEY_MODE_GLOBAL  KeyMode = "global"
+	KEY_MODE_MBOXES  KeyMode = "mboxes"
+	KEY_MODE_MBOX    KeyMode = "mbox"
+	KEY_MODE_MAIL    KeyMode = "mail"
+	KEY_MODE_PARTS   KeyMode = "parts"
+	KEY_MODE_COMPOSE KeyMode = "compose"
 )
 
-var KEYS_MODES = []KeyMode{KEY_MODE_SEARCH, KEY_MODE_THREAD, KEY_MODE_GLOBAL, KEY_MODE_MBOXES, KEY_MODE_MBOX, KEY_MODE_MAIL, KEY_MODE_PARTS}
+var KEYS_MODES = []KeyMode{KEY_MODE_SEARCH, KEY_MODE_THREAD, KEY_MODE_GLOBAL, KEY_MODE_MBOXES, KEY_MODE_MBOX, KEY_MODE_MAIL, KEY_MODE_PARTS, KEY_MODE_COMPOSE}
 
 func (m Mapping) FindCommand(ks []*lib.KeyStroke) string {
 	s := lib.KeyStrokesToString(ks)

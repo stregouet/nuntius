@@ -1,6 +1,8 @@
 package workers
 
 import (
+	"io"
+
 	"github.com/stregouet/nuntius/models"
 )
 
@@ -144,3 +146,7 @@ type ConnectImap struct {
 	BaseMessage
 }
 
+type SendMail struct {
+	BaseMessage
+	Body io.Reader
+}

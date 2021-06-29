@@ -47,6 +47,7 @@ func (iw *ImapWorker) postResponse(msg workers.Message, id int) {
 }
 
 func (iw *ImapWorker) Run() {
+	defer lib.Recover(iw.logger, nil)
 	for _, acc := range iw.Accounts {
 		go acc.Run(iw.responses)
 	}

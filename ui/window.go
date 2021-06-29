@@ -2,6 +2,7 @@ package ui
 
 import (
 	"fmt"
+	// "os/exec"
 	"sync/atomic"
 
 	"github.com/gdamore/tcell/v2"
@@ -12,6 +13,7 @@ import (
 	"github.com/stregouet/nuntius/models"
 	sm "github.com/stregouet/nuntius/statesmachines"
 	"github.com/stregouet/nuntius/workers"
+	// "github.com/stregouet/nuntius/widgets"
 )
 
 type Window struct {
@@ -36,6 +38,10 @@ func NewWindow(cfg []*config.Account, bindings config.Keybindings) *Window {
 			return
 		}
 		switch ev.Transition {
+		case sm.TR_COMPOSE_MAIL:
+			// XXX it should be possible to choose account user want to send mail with
+			c := NewComposeView(cfg[0], w.bindings[config.KEY_MODE_COMPOSE], w.Errorf)
+			w.machine.Send(&lib.Event{sm.TR_OPEN_TAB, &sm.Tab{c, "compose"}})
 		case sm.TR_OPEN_TAB:
 			w.onOpenTab(ev)
 			w.AskRedraw()
@@ -79,6 +85,7 @@ func NewWindow(cfg []*config.Account, bindings config.Keybindings) *Window {
 			})
 		w.machine.Send(&lib.Event{sm.TR_OPEN_TAB, &sm.Tab{accwidget, c.Name}})
 	}
+
 	return w
 }
 
@@ -128,7 +135,7 @@ func (w *Window) onSelectThread(acc, mailbox string, thread *models.Thread) {
 
 func (w *Window) onSelectMail(acc, mailbox string, mail *models.Mail) {
 	mv := NewMailView(w.bindings[config.KEY_MODE_MAIL], w.bindings[config.KEY_MODE_PARTS], mail)
-	mv.OnSetViewPort(func(view *views.ViewPort) {
+	mv.OnSetViewPort(func(view *views.ViewPort, screen tcell.Screen) {
 		mv.SetPartsView(view)
 	})
 	App.PostImapMessage(
@@ -207,6 +214,7 @@ func (w *Window) SetScreen(s tcell.Screen) {
 	}
 }
 func (w *Window) Draw() {
+	w.screen.HideCursor()
 	width, _ := w.screen.Size()
 	styleBase := tcell.StyleDefault
 	styleRev := styleBase.Reverse(true)
@@ -259,4 +267,17 @@ func (w *Window) HandleEvent(ev tcell.Event) bool {
 		return curTab.Content.HandleEvent(ks)
 	}
 	return false
+}
+
+func (w *Window) HandleTransitions (ev *lib.Event) {
+	s := w.state()
+	if w.ex.HandleTransitions(ev) {
+		return
+	}
+	for _, t := range s.Tabs {
+		if t.Content.HandleTransitions(ev) {
+			return
+		}
+	}
+
 }

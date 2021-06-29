@@ -12,6 +12,7 @@ const (
 	TR_NEXT_TAB    lib.TransitionType = "NEXT_TAB"
 	TR_PREV_TAB    lib.TransitionType = "PREV_TAB"
 	TR_CLOSE_APP   lib.TransitionType = "CLOSE_APP"
+	TR_COMPOSE_MAIL lib.TransitionType = "COMPOSE_MAIL"
 
 	STATE_WRITE_CMD  lib.StateType      = "WRITE_CMD"
 	TR_START_WRITING lib.TransitionType = "START_WRITING"
@@ -40,6 +41,9 @@ func NewWindowMachine() *lib.Machine {
 			STATE_SHOW_TAB: &lib.State{
 				Transitions: lib.Transitions{
 					TR_CLOSE_APP: &lib.Transition{
+						Target: STATE_SHOW_TAB,
+					},
+					TR_COMPOSE_MAIL: &lib.Transition{
 						Target: STATE_SHOW_TAB,
 					},
 					TR_OPEN_TAB: &lib.Transition{

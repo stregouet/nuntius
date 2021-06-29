@@ -23,6 +23,7 @@ type Application struct {
 	screen tcell.Screen
 	window *Window
 	// style    tcell.Style
+	transitions chan *lib.Event
 	tcEvents chan tcell.Event
 	cbId     int
 	done     chan struct{}
@@ -46,6 +47,7 @@ func InitApp(l *lib.Logger, cfg *config.Config) error {
 			Background(tcell.ColorBlack))
 		App = &Application{
 			logger:        l,
+			transitions:   make(chan *lib.Event, 10),
 			tcEvents:      make(chan tcell.Event, 10),
 			dbcallbacks:   make(map[int]PostCallback),
 			imapcallbacks: make(map[int]PostCallback),
@@ -103,6 +105,9 @@ func (app *Application) Stop() {
 func (app *Application) tick() bool {
 	more := false
 	select {
+	case ev := <-app.transitions:
+		more = true
+		app.window.HandleTransitions(ev)
 	case tev := <-app.tcEvents:
 		more = true
 		switch tev.(type) {

@@ -15,6 +15,7 @@ type Widget interface {
 	GetViewPort() *views.ViewPort
 	SetContent(x int, y int, mainc rune, combc []rune, style tcell.Style)
 	IsActiveTerm() bool
+	HandleTransitions(ev *lib.Event) bool
 
 	AskRedraw()
 	AskingRedraw(func())
@@ -25,7 +26,7 @@ type Widget interface {
 
 type BaseWidget struct {
 	redrawCb func()
-	viewCb func(view *views.ViewPort)
+	viewCb func(view *views.ViewPort, screen tcell.Screen)
 	msgCb func(msg string, args ...interface{})
 	view     *views.ViewPort
 	screen   tcell.Screen
@@ -44,7 +45,7 @@ func (b *BaseWidget) SetViewPort(view *views.ViewPort, screen tcell.Screen) {
 	b.screen = screen
 	b.view = view
 	if b.viewCb != nil {
-		b.viewCb(view)
+		b.viewCb(view, screen)
 	}
 }
 func (b *BaseWidget) GetViewPort() *views.ViewPort {
@@ -58,7 +59,7 @@ func (b *BaseWidget) Clear() {
 }
 
 
-func (b *BaseWidget) OnSetViewPort(f func(view *views.ViewPort)) {
+func (b *BaseWidget) OnSetViewPort(f func(view *views.ViewPort, screen tcell.Screen)) {
 	b.viewCb = f
 }
 
@@ -98,6 +99,10 @@ func (b *BaseWidget) ShowCursor(x int, y int) {
 	}
 }
 func (b *BaseWidget) IsActiveTerm() bool {
+	return false
+}
+	
+func (b *BaseWidget) HandleTransitions(ev *lib.Event) bool {
 	return false
 }
 
