@@ -26,6 +26,7 @@ type Widget interface {
 type BaseWidget struct {
 	redrawCb func()
 	viewCb func(view *views.ViewPort)
+	msgCb func(msg string, args ...interface{})
 	view     *views.ViewPort
 	screen   tcell.Screen
 }
@@ -59,6 +60,16 @@ func (b *BaseWidget) Clear() {
 
 func (b *BaseWidget) OnSetViewPort(f func(view *views.ViewPort)) {
 	b.viewCb = f
+}
+
+func (b *BaseWidget) OnMessage(f func(msg string, args ...interface{})) {
+	b.msgCb = f
+}
+
+func (b *BaseWidget) Messagef(msg string, args ...interface{}) {
+	if b.msgCb != nil {
+		b.msgCb(msg, args...)
+	}
 }
 
 func (b *BaseWidget) AskingRedraw(f func()) {
