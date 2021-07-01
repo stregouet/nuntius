@@ -28,10 +28,10 @@ func NewStatus(msg string) *Status {
 	return s
 }
 
-func (s *Status) ShowMessage(msg string) {
+func (s *Status) showMessage(msg string, style tcell.Style) {
 	c := &ContentWithStyle{
 		content: msg,
-		style:   tcell.StyleDefault,
+		style:   style,
 	}
 	s.tmpContent.Push(c)
 	s.AskRedraw()
@@ -42,8 +42,17 @@ func (s *Status) ShowMessage(msg string) {
 	}()
 }
 
+func (s *Status) ShowMessage(msg string) {
+	s.showMessage(msg, tcell.StyleDefault)
+}
+
+func (s *Status) ShowError(msg string) {
+	style := tcell.StyleDefault.Background(tcell.ColorBlack).Foreground(tcell.ColorRed)
+	s.showMessage(msg, style)
+}
+
 func (s *Status) Draw() {
-	view := s.GetViewPort()
+	s.Clear()
 	style := tcell.StyleDefault
 	content := s.GetContent()
 	if s.tmpContent.Length() > 0 {
@@ -51,7 +60,5 @@ func (s *Status) Draw() {
 		content = withstyle.content
 		style = withstyle.style
 	}
-	for i, ch := range content {
-		view.SetContent(i, 0, ch, nil, style)
-	}
+	s.Print(0, 0, style, content)
 }

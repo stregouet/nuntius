@@ -177,6 +177,11 @@ func (w *Window) ShowMessagef(msg string, args ...interface{}) {
 	w.ex.ShowMessage(m)
 }
 
+func (w *Window) Errorf(msg string, args ...interface{}) {
+	m := fmt.Sprintf(msg, args...)
+	w.ex.ShowError(m)
+}
+
 func (w *Window) ShouldRedraw() bool {
 	return w.triggerRedraw.Load().(bool)
 }
