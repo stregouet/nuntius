@@ -7,10 +7,6 @@ import (
 )
 
 const ARROW = '➤'
-const ANGLE1 = '└'
-const ANGLE2 = '├'
-const PIPE = '│'
-const LINE = '─'
 
 type ITreeLine interface {
 	IRune
@@ -82,20 +78,20 @@ func (t *TreeWidget) Draw() {
 			nextlines := t.lines[y+1:]
 			for level := 1; level < line.Depth(); level++ {
 				if samelevelInNextlines(nextlines, level) {
-					arrowCells[(level-1)*t.indentSize] = PIPE
+					arrowCells[(level-1)*t.indentSize] = tcell.RuneVLine
 				}
 			}
 			angleIdx := (line.Depth() - 1) * t.indentSize
 			if samelevelInNextlines(nextlines, line.Depth()) {
-				arrowCells[angleIdx] = ANGLE2
+				arrowCells[angleIdx] = tcell.RuneLTee
 			} else {
-				arrowCells[angleIdx] = ANGLE1
+				arrowCells[angleIdx] = tcell.RuneLLCorner
 			}
 			for i := angleIdx + 1; i < len(arrowCells); i++ {
 				if i == (len(arrowCells) - 1) {
 					arrowCells[i] = ARROW
 				} else {
-					arrowCells[i] = LINE
+					arrowCells[i] = tcell.RuneHLine
 				}
 			}
 		}
