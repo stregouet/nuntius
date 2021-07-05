@@ -9,11 +9,6 @@ import (
 	"github.com/stregouet/nuntius/widgets"
 )
 
-type ContentWithStyle struct {
-	content string
-	style   tcell.Style
-}
-
 type Status struct {
 	tmpContent *lib.ConcurrentList
 	*widgets.Text
@@ -29,9 +24,9 @@ func NewStatus(msg string) *Status {
 }
 
 func (s *Status) showMessage(msg string, style tcell.Style) {
-	c := &ContentWithStyle{
-		content: msg,
-		style:   style,
+	c := &widgets.ContentWithStyle{
+		Content: msg,
+		Style:   style,
 	}
 	s.tmpContent.Push(c)
 	s.AskRedraw()
@@ -56,9 +51,9 @@ func (s *Status) Draw() {
 	style := tcell.StyleDefault
 	content := s.GetContent()
 	if s.tmpContent.Length() > 0 {
-		withstyle := s.tmpContent.Last().(*ContentWithStyle)
-		content = withstyle.content
-		style = withstyle.style
+		withstyle := s.tmpContent.Last().(*widgets.ContentWithStyle)
+		content = withstyle.Content
+		style = withstyle.Style
 	}
 	s.Print(0, 0, style, content)
 }
