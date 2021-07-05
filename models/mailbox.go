@@ -5,6 +5,7 @@ import (
 	"strings"
 
 	ndb "github.com/stregouet/nuntius/database"
+	"github.com/stregouet/nuntius/widgets"
 )
 
 type Mailbox struct {
@@ -19,8 +20,10 @@ type Mailbox struct {
 	directoryDepth int
 }
 
-func (m *Mailbox) ToRune() []rune {
-	return []rune(m.ShortName)
+func (m *Mailbox) StyledContent() []*widgets.ContentWithStyle {
+	return []*widgets.ContentWithStyle{
+		widgets.NewContent(m.ShortName),
+	}
 }
 
 func (m *Mailbox) Depth() int {

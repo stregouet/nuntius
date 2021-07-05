@@ -9,7 +9,7 @@ import (
 const ARROW = '➤'
 
 type ITreeLine interface {
-	IRune
+	IStyled
 	Depth() int
 }
 
@@ -107,13 +107,14 @@ func (t *TreeWidget) Draw() {
 		if linenum == t.selected {
 			style = style.Reverse(true)
 		}
-		for x, r := range line.ToRune() {
-			x = len(arrowCells) + x
-			colnum := x + 1
-			if colnum > w {
-				break
-			}
-			v.SetContent(x, y, r, nil, style)
+		coloffset := 0
+		for _, withstyle := range line.StyledContent() {
+			coloffset += t.Print(
+				len(arrowCells) + coloffset,
+				y,
+				withstyle.Reverse(linenum == t.selected),
+				withstyle.Content,
+			)
 		}
 	}
 }

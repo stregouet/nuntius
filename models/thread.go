@@ -10,6 +10,7 @@ import (
 	"github.com/pkg/errors"
 
 	ndb "github.com/stregouet/nuntius/database"
+	"github.com/stregouet/nuntius/widgets"
 )
 
 // XXX rename to ThreadInfo?
@@ -21,12 +22,13 @@ type Thread struct {
 	Count   int
 }
 
-func (m *Thread) ToRune() []rune {
-	return []rune(fmt.Sprintf("%s (%d) %s",
-		m.Date.Format("2006-01-02 15:04:05"),
-		m.Count,
-		m.Subject,
-	))
+func (m *Thread) StyledContent() []*widgets.ContentWithStyle {
+	return []*widgets.ContentWithStyle{
+		widgets.NewContent(fmt.Sprintf("%s (%d) %s",
+			m.Date.Format("2006-01-02 15:04:05"),
+			m.Count,
+			m.Subject)),
+	}
 }
 
 

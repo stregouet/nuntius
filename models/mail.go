@@ -8,6 +8,7 @@ import (
 
 	"github.com/emersion/go-imap"
 	"github.com/emersion/go-message/mail"
+	"github.com/stregouet/nuntius/widgets"
 )
 
 type BodyPath string
@@ -55,8 +56,10 @@ func (bp *BodyPart) Depth() int {
 	return strings.Count(string(bp.Path), "/")
 }
 
-func (bp *BodyPart) ToRune() []rune {
-	return []rune(fmt.Sprintf("%s/%s (%s)", bp.MIMEType, bp.MIMESubType, bp.Path))
+func (bp *BodyPart) StyledContent() []*widgets.ContentWithStyle {
+	return []*widgets.ContentWithStyle{
+		widgets.NewContent(fmt.Sprintf("%s/%s (%s)", bp.MIMEType, bp.MIMESubType, bp.Path)),
+	}
 }
 
 func bodyPartsFromImapParts(bs *imap.BodyStructure, parts []*BodyPart, path []int) []*BodyPart {
@@ -93,11 +96,10 @@ type Mail struct {
 	Header    *mail.Header
 }
 
-func (m *Mail) ToRune() []rune {
-	return []rune(fmt.Sprintf("%s %s",
-		m.Date.Format("2006-01-02 15:04:05"),
-		m.Subject,
-	))
+func (m *Mail) StyledContent() []*widgets.ContentWithStyle {
+	return []*widgets.ContentWithStyle{
+		widgets.NewContent(fmt.Sprintf("%s %s", m.Date.Format("2006-01-02 15:04:05"), m.Subject)),
+	}
 }
 
 func (m *Mail) Depth() int {

@@ -6,32 +6,46 @@ import (
 	"github.com/stregouet/nuntius/lib"
 )
 
-type IRune interface {
-	ToRune() []rune
+type ContentWithStyle struct {
+	Content string
+	Style   tcell.Style
+}
+
+func NewContent(c string) *ContentWithStyle {
+	return &ContentWithStyle{c, tcell.StyleDefault}
+}
+
+func (cs *ContentWithStyle) Reverse(should bool) tcell.Style {
+	return cs.Style.Reverse(should)
+}
+
+
+type IStyled interface {
+	StyledContent() []*ContentWithStyle
 }
 
 type ListWidget struct {
-	lines             []IRune
+	lines             []IStyled
 	selected          int
-	OnSelect          func(IRune)
+	OnSelect          func(IStyled)
 	viewableFirstLine int
 	BaseWidget
 }
 
 func NewList() *ListWidget {
 	return &ListWidget{
-		lines:    make([]IRune, 0),
-		OnSelect: func(IRune) {},
+		lines:    make([]IStyled, 0),
+		OnSelect: func(IStyled) {},
 		selected: 1,
 	}
 }
 
-func (l *ListWidget) AddLine(line IRune) {
+func (l *ListWidget) AddLine(line IStyled) {
 	l.lines = append(l.lines, line)
 }
 
 func (l *ListWidget) ClearLines() {
-	l.lines = make([]IRune, 0)
+	l.lines = make([]IStyled, 0)
 }
 
 func max(a, b int) int {
@@ -66,22 +80,20 @@ func (l *ListWidget) SetSelected(s int) {
 
 func (l *ListWidget) Draw() {
 	v := l.view
-	w, h := v.Size()
+	_, h := v.Size()
 	for y, line := range l.lines {
 		linenum := y + 1
 		if linenum > (h + 1000000) {
 			break
 		}
-		style := tcell.StyleDefault
-		if linenum == l.selected {
-			style = style.Reverse(true)
-		}
-		for x, r := range line.ToRune() {
-			colnum := x + 1
-			if colnum > w {
-				break
-			}
-			v.SetContent(x, y, r, nil, style)
+		coloffset := 0
+		for _, withstyle := range line.StyledContent() {
+			coloffset += l.Print(
+				coloffset,
+				y,
+				withstyle.Reverse(linenum == l.selected),
+				withstyle.Content,
+			)
 		}
 	}
 }
