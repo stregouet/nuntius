@@ -44,6 +44,9 @@ func NewMailboxView(accountName, mboxName string, bindings config.Mapping, onSel
 }
 
 func (mv *MailboxView) SetThreads(threads []*models.Thread) {
+	if len(threads) == 0 {
+		return
+	}
 	mv.machine.Send(&lib.Event{sm.TR_SET_THREADS, threads})
 	mv.ClearLines()
 	for _, t := range threads {
@@ -92,6 +95,7 @@ func (mv *MailboxView) insertDb(mails []*models.Mail) {
 				App.logger.Errorf("upsert messages res %v", response)
 				mv.Error(r.Error)
 			case *workers.InsertNewMessagesRes:
+				App.logger.Debugf("correctly added %d in db", len(r.Threads))
 				mv.SetThreads(r.Threads)
 			}
 			return nil

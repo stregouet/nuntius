@@ -2,6 +2,7 @@ package workers
 
 import (
 	"database/sql"
+	"fmt"
 
 	"github.com/pkg/errors"
 
@@ -127,16 +128,6 @@ func (d *Database) handleMessage(db *sql.DB, msg Message) {
 			m = &FetchThreadRes{Mails: result}
 		}
 		d.postResponse(m, msg.GetId())
-	// case *FetchMailboxImapRes:
-	// 	result, err := d.handleFetchMailboxImap(db, msg)
-	// 	var m Message
-	// 	if err != nil {
-	// 		m = &Error{Error: errors.New("oups inserting mails")}
-	// 		d.logger.Errorf("error while inserting and fetching mails %v", err)
-	// 	} else {
-	// 		m = &FetchMailboxRes{List: result}
-	// 	}
-	// 	d.postResponse(m, msg.GetId())
 	case *FetchMailbox:
 		m, err := d.handleFetchMailbox(db, msg)
 		if err != nil {
@@ -152,15 +143,19 @@ func (d *Database) handleInsertNewMessages(db *sql.DB, msg *InsertNewMessages) (
 	if err != nil {
 		return nil, errors.Wrap(err, "while beginning tx")
 	}
+
+	rollback := func(err error, msg string) error {
+		if rollerr := tx.Rollback(); rollerr != nil {
+			return errors.Wrap(rollerr, "while trying to rollback")
+		}
+		return errors.Wrap(err, msg)
+	}
 	// first insert mails on db
 	lastuid := uint32(0)
 	for _, m := range msg.Mails {
 		err = m.InsertInto(tx, msg.Mailbox, msg.GetAccName())
 		if err != nil {
-			if rollerr := tx.Rollback(); rollerr != nil {
-				return nil, errors.Wrap(rollerr, "while trying to rollback")
-			}
-			return nil, errors.Wrapf(err, "while inserting mail (m: %#v)", m)
+			return nil, rollback(err, fmt.Sprintf("while inserting mail (m: %#v)", m))
 		}
 		if m.Uid > lastuid {
 			lastuid = m.Uid
@@ -170,27 +165,38 @@ func (d *Database) handleInsertNewMessages(db *sql.DB, msg *InsertNewMessages) (
 	m := models.Mailbox{Name: msg.Mailbox, LastSeenUid: lastuid}
 	err = m.UpdateLastUid(tx, msg.GetAccName())
 	if err != nil {
-		if rollerr := tx.Rollback(); rollerr != nil {
-			return nil, errors.Wrap(rollerr, "while trying to rollback")
-		}
-		return nil, errors.Wrapf(err, "while updating lastseenuid (mbox: %#v)", msg.Mailbox)
+		return nil, rollback(
+			err,
+			fmt.Sprintf("while updating lastseenuid (mbox: %#v)", msg.Mailbox))
 	}
-	// then fetch all threads root
-	roots, err := models.AllThreadsRoot(tx, msg.GetAccName())
+	// then fetch last thread id
+	threadid, err := models.FetchThreadCounter(tx)
 	if err != nil {
-		if rollerr := tx.Rollback(); rollerr != nil {
-			return nil, errors.Wrap(rollerr, "while trying to rollback")
+		return nil, rollback(err, "while fetching thread counter")
+	}
+	// then insert new threadid
+	alreadydone := make(map[int]struct{})
+	for idx, m := range msg.Mails {
+		root, err := m.FetchRoot(tx)
+		if err != nil {
+			return nil, rollback(err, fmt.Sprintf("while fetching root %d", m.Uid))
 		}
-		return nil, errors.Wrap(err, "while getting roots")
+		if _, ok := alreadydone[root.Id]; ok {
+			continue
+		}
+		err = root.UpdateThreadidOnChild(tx, threadid.Next())
+		if err != nil {
+			return nil, rollback(err, "while updating threadid")
+		}
+		alreadydone[root.Id] = struct{}{}
+		if idx > 0 && idx % 100 == 0 {
+			d.logger.Debugf("update root (%d/%d)", idx, len(msg.Mails))
+		}
 	}
-	// finally insert new threadid
-	threadid := 0
-	nextThreadid := func() int {
-		threadid++
-		return threadid
-	}
-	for _, m := range roots {
-		m.UpdateThreadidOnChild(tx, nextThreadid())
+	// finally update last threadid
+	err = threadid.UpdateThreadCounter(tx)
+	if err != nil {
+		return nil, rollback(err, "while updating thread counter")
 	}
 	if err = tx.Commit(); err != nil {
 		return nil, errors.Wrap(err, "while commiting tx")
@@ -208,44 +214,6 @@ func (d *Database) handleFetchMailboxes(db *sql.DB, accountname string) ([]*mode
 		return nil, errors.Wrap(err, "while selecting mailboxes")
 	}
 	return rows, nil
-}
-
-func (d *Database) handleFetchMailboxImap(db *sql.DB, msg *FetchMailboxImapRes) ([]*models.Thread, error) {
-	tx, err := db.Begin()
-	if err != nil {
-		return nil, errors.Wrap(err, "while beginning tx")
-	}
-	// first insert mails on db
-	for _, m := range msg.Mails {
-		err = m.InsertInto(tx, msg.Mailbox, msg.GetAccName())
-		if err != nil {
-			if rollerr := tx.Rollback(); rollerr != nil {
-				return nil, errors.Wrap(rollerr, "while trying to rollback")
-			}
-			return nil, errors.Wrapf(err, "while inserting mail (m: %#v)", m)
-		}
-	}
-	// then fetch all threads root
-	roots, err := models.AllThreadsRoot(tx, msg.GetAccName())
-	if err != nil {
-		if rollerr := tx.Rollback(); rollerr != nil {
-			return nil, errors.Wrap(rollerr, "while trying to rollback")
-		}
-		return nil, errors.Wrap(err, "while getting roots")
-	}
-	// finally insert new threadid
-	threadid := 0
-	nextThreadid := func() int {
-		threadid++
-		return threadid
-	}
-	for _, m := range roots {
-		m.UpdateThreadidOnChild(tx, nextThreadid())
-	}
-	if err = tx.Commit(); err != nil {
-		return nil, errors.Wrap(err, "while commiting tx")
-	}
-	return models.AllThreads(db, msg.Mailbox, msg.GetAccName())
 }
 
 func (d *Database) handleFetchThread(db *sql.DB, msg *FetchThread) ([]*models.Mail, error) {

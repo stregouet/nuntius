@@ -65,24 +65,47 @@ func (m *Mail) InsertInto(r ndb.Execer, mailbox, accname string) error {
 			return err
 		}
 	}
-	_, err = r.Exec(`INSERT INTO mail (subject, messageid, inreplyto, date, threadid, uid, flags, parts, account, mailbox)
+	// insert null instead of 0 for "empty" Threadid
+	var threadid interface{}
+	if m.Threadid != 0 {
+		threadid = m.Threadid
+	}
+	// insert null instead of "" for "empty" InReplyTo
+	var inreplyto interface{}
+	if m.InReplyTo != "" {
+		inreplyto = m.InReplyTo
+	}
+	// fake unique messageid instead of empty
+	if m.MessageId == "" {
+		m.MessageId = fmt.Sprintf("empty-%s-%s-%d", accname, mailbox, m.Uid)
+	}
+	res, err := r.Exec(`INSERT INTO mail (subject, messageid, inreplyto, date, threadid, uid, flags, parts, account, mailbox)
 SELECT ?, ?, ?, ?, ?, ?, ?, ?, account.id, mailbox.id
 FROM
   mailbox
   JOIN account on account.id = mailbox.account
 WHERE mailbox.name = ? AND account.name = ?
-ON CONFLICT (uid, mailbox) DO UPDATE SET flags=excluded.flags`,
+ON CONFLICT (uid, mailbox) DO UPDATE SET flags=excluded.flags
+ON CONFLICT (messageid) DO UPDATE SET identical_as=trim(printf('%s|(%s, %s)', mail.identical_as, excluded.uid, excluded.mailbox), '|')`,
 		m.Subject,
 		m.MessageId,
-		m.InReplyTo,
+		inreplyto,
 		m.Date,
-		m.Threadid,
+		threadid,
 		m.Uid,
 		strings.Join(m.Flags, ","),
 		parts,
 		mailbox,
 		accname,
 	)
+	if err != nil {
+		return err
+	}
+	lastid, err := res.LastInsertId()
+	if err != nil {
+		return err
+	}
+	m.Id = int(lastid)
 	return err
 }
 
@@ -121,6 +144,43 @@ func (m *Mail) UpdateThreadidOnChild(tx *sql.Tx, threadid int) error {
       inner join mail this on this.inreplyto = prior.messageid
 	) update mail set threadid = ? from empdata where empdata.id = mail.id`, m.Id, threadid)
 	return err
+}
+
+// fetch thread root
+func (m *Mail) FetchRoot(r ndb.Queryer) (*Mail, error) {
+	if strings.TrimSpace(m.MessageId) == "" {
+		// no need to search for hierarchy in case of empty messageid
+		return m, nil
+	}
+	var id int
+	// retrieve parents in thread hierarchy, then select oldest parent
+	err := r.QueryRow(`
+WITH RECURSIVE empdata(id, inreplyto, messageid, date) as (
+    SELECT
+      mail.id,
+      mail.inreplyto,
+      messageid,
+	  mail.date
+    FROM mail
+    WHERE mail.id = ?
+  UNION ALL
+    SELECT
+      this.id,
+      this.inreplyto,
+      this.messageid,
+	  this.date
+    FROM
+      empdata prior
+      INNER JOIN mail this ON this.messageid = prior.inreplyto
+)
+SELECT
+  e.id
+FROM
+  (SELECT MIN(date) AS d FROM empdata) r,
+  empdata e
+WHERE e.date = r.d
+	`, m.Id).Scan(&id)
+	return &Mail{Id: id}, err
 }
 
 func (m *Mail) UpdateThreadid(tx *sql.Tx) error {
@@ -188,6 +248,7 @@ func AllThreads(r ndb.Queryer, mailbox, accname string) ([]*Thread, error) {
 FROM q
 WHERE
   NOT EXISTS (SELECT 1 FROM mail p WHERE q.inreplyto = p.messageid)
+ORDER BY q.date DESC
 `, accname, mailbox)
 	if err != nil {
 		return nil, err
