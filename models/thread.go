@@ -7,6 +7,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/gdamore/tcell/v2"
 	"github.com/pkg/errors"
 
 	ndb "github.com/stregouet/nuntius/database"
@@ -15,19 +16,24 @@ import (
 
 // XXX rename to ThreadInfo?
 type Thread struct {
-	Id      int
-	RootId  int
-	Subject string
-	Date    time.Time
-	Count   int
+	Id        int
+	RootId    int
+	Subject   string
+	Date      time.Time
+	Count     int
+	HasUnread bool
 }
 
-func (m *Thread) StyledContent() []*widgets.ContentWithStyle {
+func (t *Thread) StyledContent() []*widgets.ContentWithStyle {
+	s := tcell.StyleDefault.Bold(t.HasUnread)
 	return []*widgets.ContentWithStyle{
-		widgets.NewContent(fmt.Sprintf("%s (%d) %s",
-			m.Date.Format("2006-01-02 15:04:05"),
-			m.Count,
-			m.Subject)),
+		{
+			fmt.Sprintf("%s (%d) %s",
+				t.Date.Format("2006-01-02 15:04:05"),
+				t.Count,
+				t.Subject),
+			s,
+		},
 	}
 }
 
@@ -228,29 +234,33 @@ func AllThreads(r ndb.Queryer, mailbox, accname string) ([]*Thread, error) {
 	// select all threads in specified account, mailbox with:
 	// - count of messages in this thread
 	// - date of the most recent messages in this thread
-	// - subject of root of this thread
-	rows, err := r.Query(`WITH q AS (
-  SELECT
-    m.id,
-    subject,
-    threadid,
-	inreplyto,
-    COUNT(1) OVER w as count,
-    MAX(date) OVER w as date
-  FROM
-    mail m
-    JOIN mailbox mbox ON mbox.id = m.mailbox
-    JOIN account a ON a.id = m.account AND a.id = mbox.account
-  WHERE
-    a.name = ? AND
-    mbox.name = ?
-  WINDOW w AS (partition by threadid)
-) SELECT
-  q.id, q.threadid, q.subject, q.date, q.count
-FROM q
-WHERE
-  NOT EXISTS (SELECT 1 FROM mail p WHERE q.inreplyto = p.messageid)
-ORDER BY q.date DESC
+	// - subject of root of this thread (i.e. the oldest message)
+	rows, err := r.Query(`
+SELECT id, threadid, subject, mostrecent, seen, count
+FROM (
+    SELECT
+	  p.id,
+      p.threadid,
+      subject,
+	  MIN(flags like '%Seen%') OVER w AS seen,
+      MAX(p.date) OVER w AS mostrecent,
+      COUNT(1) OVER w as count,
+      ROW_NUMBER() OVER (PARTITION BY threadid ORDER BY p.date ASC) AS rn
+    FROM mail p
+    WHERE p.threadid in (
+      SELECT
+        m.threadid
+      FROM
+        mail m
+        JOIN mailbox mbox ON mbox.id = m.mailbox
+        JOIN account a ON a.id = m.account AND a.id = mbox.account
+      WHERE
+        a.name = ? AND mbox.name = ?
+    )
+    WINDOW w AS (partition by threadid)
+)
+WHERE rn = 1
+ORDER BY mostrecent DESC
 `, accname, mailbox)
 	if err != nil {
 		return nil, err
@@ -262,11 +272,12 @@ ORDER BY q.date DESC
 		var subject string
 		var date DateFromStr
 		var count int
-		err = rows.Scan(&rootid, &threadid, &subject, &date, &count)
+		var seen bool
+		err = rows.Scan(&rootid, &threadid, &subject, &date, &seen, &count)
 		if err != nil {
 			return nil, err
 		}
-		t := &Thread{RootId: rootid, Subject: subject, Date: date.T, Count: count}
+		t := &Thread{RootId: rootid, Subject: subject, Date: date.T, Count: count, HasUnread: !seen}
 		if threadid.Valid {
 			t.Id = int(threadid.Int32)
 		}
@@ -304,7 +315,7 @@ WHERE
 // with specific depth for each
 func AllThreadMails(r ndb.Queryer, rootMailId int) ([]*Mail, error) {
 	rows, err := r.Query(`
-WITH RECURSIVE tmp(id, messageid, subject, date, uid, parts, depth) as (
+WITH RECURSIVE tmp(id, messageid, subject, date, uid, parts, flags, depth) as (
     SELECT
       mail.id,
       messageid,
@@ -312,6 +323,7 @@ WITH RECURSIVE tmp(id, messageid, subject, date, uid, parts, depth) as (
 	  date,
 	  uid,
 	  parts,
+	  flags,
 	  0 as depth
     FROM mail
     WHERE mail.id = ?
@@ -323,11 +335,12 @@ WITH RECURSIVE tmp(id, messageid, subject, date, uid, parts, depth) as (
 	  this.date,
 	  this.uid,
 	  this.parts,
+	  this.flags,
 	  prior.depth + 1 as depth
     FROM
       tmp prior
       INNER JOIN mail this ON this.inreplyto = prior.messageid
-) select id, subject, date, uid, parts, depth from tmp`, rootMailId)
+) select id, subject, date, uid, parts, flags, depth from tmp`, rootMailId)
 	if err != nil {
 		return nil, err
 	}
@@ -340,7 +353,8 @@ WITH RECURSIVE tmp(id, messageid, subject, date, uid, parts, depth) as (
 		var uid uint32
 		var depth int
 		var rawparts []byte
-		err = rows.Scan(&id, &subject, &date, &uid, &rawparts, &depth)
+		var flags string
+		err = rows.Scan(&id, &subject, &date, &uid, &rawparts, &flags, &depth)
 		if err != nil {
 			return nil, err
 		}
@@ -349,7 +363,7 @@ WITH RECURSIVE tmp(id, messageid, subject, date, uid, parts, depth) as (
 		if err != nil {
 			return nil, err
 		}
-		m := &Mail{Id: id, Subject: subject, depth: depth, Date: date, Uid: uid, Parts: parts}
+		m := &Mail{Id: id, Subject: subject, depth: depth, Date: date, Uid: uid, Parts: parts, Flags: strings.Split(flags, ",")}
 		roots = append(roots, m)
 	}
 	return roots, nil

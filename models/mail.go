@@ -8,6 +8,8 @@ import (
 
 	"github.com/emersion/go-imap"
 	"github.com/emersion/go-message/mail"
+	"github.com/gdamore/tcell/v2"
+
 	"github.com/stregouet/nuntius/widgets"
 )
 
@@ -97,9 +99,21 @@ type Mail struct {
 }
 
 func (m *Mail) StyledContent() []*widgets.ContentWithStyle {
+	s := tcell.StyleDefault.Bold(m.IsUnread())
 	return []*widgets.ContentWithStyle{
-		widgets.NewContent(fmt.Sprintf("%s %s", m.Date.Format("2006-01-02 15:04:05"), m.Subject)),
+		widgets.NewContent(m.Date.Format("2006-01-02 15:04:05") + " "),
+		{m.Subject, s},
+		widgets.NewContent(" (" + strings.Join(m.Flags, "|") + ")"),
 	}
+}
+
+func (m *Mail) IsUnread() bool {
+	for _, f := range m.Flags {
+		if f == imap.SeenFlag {
+			return false
+		}
+	}
+	return true
 }
 
 func (m *Mail) Depth() int {
