@@ -70,14 +70,12 @@ func NewWindow(cfg []*config.Account, bindings config.Keybindings) *Window {
 			&workers.FetchMailboxes{},
 			c.Name,
 			func(response workers.Message) error {
-				App.logger.Debug("fetchmailboxes callback")
 				switch r := response.(type) {
 				case *workers.Error:
-					App.logger.Errorf("fetchmailboxes res %v", response)
+					App.logger.Errorf("fetchmailboxes %v", response)
 					w.ShowMessage(r.Error.Error())
 				case *workers.FetchMailboxesRes:
-					App.logger.Debugf("fetchmailboxes res %v", response)
-					accwidget.SetMailboxes(r.Mailboxes) // XXX should call askredraw
+					accwidget.SetMailboxes(r.Mailboxes)
 				default:
 					App.logger.Error("unknown response type")
 				}
@@ -106,6 +104,7 @@ func (w *Window) onSelectMailbox(acc string, mailbox *models.Mailbox) {
 			case *workers.FetchMailboxRes:
 				mv.SetThreads(r.List)
 				mv.FetchNewMessages(r.LastSeenUid)
+				mv.FetchUpdateMessages(r.LastSeenUid)
 			default:
 				App.logger.Error("unknown response type")
 			}

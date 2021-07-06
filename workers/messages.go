@@ -142,6 +142,29 @@ func (m *FetchMailboxes) Clone() Message {
 	return &FetchMailboxes{m.CloneBase()}
 }
 
+type FetchMessageUpdates struct {
+	BaseMessage
+	Mailbox     string
+	LastSeenUid uint32
+}
+
+type FetchMessageUpdatesRes struct {
+	BaseMessage
+	Mailbox string
+	Mails   []*models.Mail
+}
+
+type UpdateMessages struct {
+	BaseMessage
+	Mailbox string
+	Mails   []*models.Mail
+}
+
+type UpdateMessagesRes struct {
+	BaseMessage
+	Threads []*models.Thread
+}
+
 type ConnectImap struct {
 	BaseMessage
 }

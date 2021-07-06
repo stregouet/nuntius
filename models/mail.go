@@ -10,6 +10,8 @@ import (
 	"github.com/emersion/go-message/mail"
 	"github.com/gdamore/tcell/v2"
 
+	ndb "github.com/stregouet/nuntius/database"
+	"github.com/stregouet/nuntius/lib"
 	"github.com/stregouet/nuntius/widgets"
 )
 
@@ -142,4 +144,41 @@ func (m *Mail) FindFirstNonMultipart() *BodyPath {
 		}
 	}
 	return nil
+}
+
+func (m *Mail) Delete(r ndb.Execer) error {
+	_, err := r.Exec("DELETE FROM mail WHERE id = ?", m.Id)
+	return err
+}
+
+func (m *Mail) UpdateFlags(r ndb.Execer, flags []string) error {
+	if lib.IsCountEqual(m.Flags, flags) {
+		// newflags is same as already known flags => no need to perform update
+		return nil
+	}
+	_, err := r.Exec("UPDATE mail SET flags = ? WHERE id = ?", strings.Join(flags, ","), m.Id)
+	return err
+}
+
+func FetchMails(r ndb.Queryer, mailbox, accname string) ([]*Mail, error) {
+	rows, err := r.Query(`SELECT m.id, m.uid FROM
+        mail m
+        JOIN mailbox mbox ON mbox.id = m.mailbox
+        JOIN account a ON a.id = m.account AND a.id = mbox.account
+      WHERE
+        a.name = ? AND mbox.name = ?`, accname, mailbox)
+	if err != nil {
+		return nil, err
+	}
+	result := make([]*Mail, 0)
+	for rows.Next() {
+		var id int
+		var uid int
+		err = rows.Scan(&id, &uid)
+		if err != nil {
+			return nil, err
+		}
+		result = append(result, &Mail{Id: id, Uid: uint32(uid)})
+	}
+	return result, nil
 }

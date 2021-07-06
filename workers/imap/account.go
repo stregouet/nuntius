@@ -129,6 +129,13 @@ func (a *Account) Run(responses chan<- workers.Message) {
 				r = &workers.Error{Error: errors.New("error requesting imap server")}
 			}
 			postResponse(r, msg.GetId())
+		case *workers.FetchMessageUpdates:
+			r, err := a.handleFetchMessageUpdates(msg)
+			if err != nil {
+				a.logger.Warnf("error fetching messages update %v", err)
+				r = &workers.Error{Error: errors.New("error requesting imap server")}
+			}
+			postResponse(r, msg.GetId())
 		case *workers.FetchFullMail:
 			r, err := a.handleFetchFullMail(msg)
 			if err != nil {
@@ -145,7 +152,7 @@ func (a *Account) handleFetchFullMail(msg *workers.FetchFullMail) (workers.Messa
 	if err != nil {
 		return nil, err
 	}
-	section := &imap.BodySectionName{Peek: true}
+	section := &imap.BodySectionName{Peek: true}  // XXX remove Peek
 	items := []imap.FetchItem{
 		imap.FetchEnvelope,
 		imap.FetchFlags,
@@ -182,6 +189,38 @@ func (a *Account) handleFetchFullMail(msg *workers.FetchFullMail) (workers.Messa
 	})
 	if err != nil {
 		return nil, err
+	}
+	return r, nil
+}
+
+func (a *Account) handleFetchMessageUpdates(msg *workers.FetchMessageUpdates) (workers.Message, error) {
+	a.logger.Debug("will fetch messages updates")
+	err := a.selectMbox(msg.Mailbox)
+	if err != nil {
+		return nil, err
+	}
+	items := []imap.FetchItem{
+		imap.FetchFlags,
+		imap.FetchUid,
+	}
+	result := make([]*models.Mail, 0)
+	var set imap.SeqSet
+	// range 1:lastseenuid
+	set.AddRange(1, msg.LastSeenUid)
+	err = fetch(a.c, &set, items, func(m *imap.Message) error {
+		mail := &models.Mail{
+			Flags: m.Flags,
+			Uid:   m.Uid,
+		}
+		result = append(result, mail)
+		return nil
+	})
+	if err != nil {
+		return nil, err
+	}
+	r := &workers.FetchMessageUpdatesRes{
+		Mailbox: msg.Mailbox,
+		Mails:   result,
 	}
 	return r, nil
 }

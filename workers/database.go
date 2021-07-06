@@ -118,6 +118,16 @@ func (d *Database) handleMessage(db *sql.DB, msg Message) {
 			m = &InsertNewMessagesRes{Threads: result}
 		}
 		d.postResponse(m, msg.GetId())
+	case *UpdateMessages:
+		result, err := d.handleUpdateMessages(db, msg)
+		var m Message
+		if err != nil {
+			m = &Error{Error: errors.New("cannot update mails flags")}
+			d.logger.Errorf("error while updating mails flags %v", err)
+		} else {
+			m = &UpdateMessagesRes{Threads: result}
+		}
+		d.postResponse(m, msg.GetId())
 	case *FetchThread:
 		result, err := d.handleFetchThread(db, msg)
 		var m Message
@@ -135,6 +145,7 @@ func (d *Database) handleMessage(db *sql.DB, msg Message) {
 			d.logger.Errorf("error while fetchingmailbox %v", err)
 		}
 		d.postResponse(m, msg.GetId())
+
 	}
 }
 
@@ -251,4 +262,46 @@ func (d *Database) handleFetchMailboxesImap(db *sql.DB, msg *FetchMailboxesImapR
 		return nil, errors.Wrap(err, "while commiting tx")
 	}
 	return d.handleFetchMailboxes(db, msg.GetAccName())
+}
+
+func (d *Database) handleUpdateMessages(db *sql.DB, msg *UpdateMessages) ([]*models.Thread, error) {
+	dbMails, err := models.FetchMails(db, msg.Mailbox, msg.GetAccName())
+	if err != nil {
+		return nil, errors.Wrap(err, "while fetching mails in mailbox")
+	}
+	imapMails := make(map[uint32]*models.Mail)
+	for _, m := range msg.Mails {
+		imapMails[m.Uid] = m
+	}
+	d.logger.Debugf("will update mails flags  (imap: %d, db: %d)", len(imapMails), len(dbMails))
+
+	tx, err := db.Begin()
+	if err != nil {
+		return nil, errors.Wrap(err, "while beginning tx")
+	}
+	rollback := func(err error, msg string) error {
+		if rollerr := tx.Rollback(); rollerr != nil {
+			return errors.Wrap(rollerr, "while trying to rollback")
+		}
+		return errors.Wrap(err, msg)
+	}
+	for _, mail := range dbMails {
+		if m, ok := imapMails[mail.Uid]; ok {
+			err = mail.UpdateFlags(tx, m.Flags)
+			if err != nil {
+				return nil, rollback(err, "while updating flags")
+			}
+		} else {
+			d.logger.Debugf("will delete mail %d", mail.Uid)
+			err = mail.Delete(tx)
+			if err != nil {
+				return nil, rollback(err, "while deleting mail")
+			}
+		}
+	}
+
+	if err = tx.Commit(); err != nil {
+		return nil, errors.Wrap(err, "while commiting tx")
+	}
+	return models.AllThreads(db, msg.Mailbox, msg.GetAccName())
 }

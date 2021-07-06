@@ -63,7 +63,23 @@ func (mv *MailboxView) Error(err error) {
 
 func (mv *MailboxView) Refresh(lastuid uint32) {
 	mv.FetchNewMessages(lastuid)
-	// mv.FetchUpdateMessages()
+	mv.FetchUpdateMessages(lastuid)
+}
+
+func (mv *MailboxView) FetchUpdateMessages(lastuid uint32) {
+	App.PostImapMessage(
+		&workers.FetchMessageUpdates{Mailbox: mv.mboxName, LastSeenUid: lastuid},
+		mv.accountName,
+		func(response workers.Message) error {
+			switch r := response.(type) {
+			case *workers.Error:
+				App.logger.Errorf("fetch update messages %v", response)
+				mv.Error(r.Error)
+			case *workers.FetchMessageUpdatesRes:
+				mv.updateDb(r.Mails)
+			}
+			return nil
+		})
 }
 
 func (mv *MailboxView) FetchNewMessages(lastuid uint32) {
@@ -77,6 +93,25 @@ func (mv *MailboxView) FetchNewMessages(lastuid uint32) {
 				mv.Error(r.Error)
 			case *workers.FetchNewMessagesRes:
 				mv.insertDb(r.Mails)
+			}
+			return nil
+		})
+}
+
+func (mv *MailboxView) updateDb(mails []*models.Mail) {
+	if len(mails) == 0 {
+		return
+	}
+	App.PostDbMessage(
+		&workers.UpdateMessages{Mailbox: mv.mboxName, Mails: mails},
+		mv.accountName,
+		func(response workers.Message) error {
+			switch r := response.(type) {
+			case *workers.Error:
+				App.logger.Errorf("error updating mails flags in db %v", r)
+				mv.Error(r.Error)
+			case *workers.UpdateMessagesRes:
+				mv.SetThreads(r.Threads)
 			}
 			return nil
 		})
