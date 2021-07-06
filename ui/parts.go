@@ -14,7 +14,7 @@ type MailPartsView struct {
 	*widgets.TreeWidget
 }
 
-func NewMailPartsView(bindings config.Mapping, parts []*models.BodyPart, onSelect func(part models.BodyPath)) *MailPartsView {
+func NewMailPartsView(bindings config.Mapping, parts []*models.BodyPart, onSelect func(part *models.BodyPart)) *MailPartsView {
 	machine := sm.NewMailPartsMachine(parts)
 	mp := &MailPartsView{machine, bindings, nil}
 	t := widgets.NewTreeWithInitSelected(mp.state().Selected)
@@ -22,7 +22,7 @@ func NewMailPartsView(bindings config.Mapping, parts []*models.BodyPart, onSelec
 		state := ctx.(*sm.MailPartsMachineCtx)
 		switch ev.Transition {
 		case sm.TR_SELECT_PART:
-			onSelect(state.Parts[state.Selected-1].Path)
+			onSelect(state.Parts[state.Selected-1])
 		case sm.TR_MAIL_PARTS_UP, sm.TR_MAIL_PARTS_DOWN, sm.TR_SET_SELECTED_PART:
 			t.SetSelected(state.Selected)
 			t.AskRedraw()

@@ -122,25 +122,25 @@ func (m *Mail) Depth() int {
 	return m.depth
 }
 
-func (m *Mail) FindPlaintext() *BodyPath {
+func (m *Mail) FindPlaintext() *BodyPart {
 	if m.Parts == nil || len(m.Parts) == 0 {
 		return nil
 	}
 	for _, p := range m.Parts {
 		if p.MIMEType == "text" && p.MIMESubType == "plain" {
-			return &p.Path
+			return p
 		}
 	}
 	return nil
 }
 
-func (m *Mail) FindFirstNonMultipart() *BodyPath {
+func (m *Mail) FindFirstNonMultipart() *BodyPart {
 	if m.Parts == nil || len(m.Parts) == 0 {
 		return nil
 	}
 	for _, p := range m.Parts {
 		if p.MIMEType != "multipart" {
-			return &p.Path
+			return p
 		}
 	}
 	return nil

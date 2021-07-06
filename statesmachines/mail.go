@@ -21,16 +21,16 @@ const (
 type MailMachineCtx struct {
 	Mail         *models.Mail
 	Filepath     string
-	SelectedPart *models.BodyPath
+	SelectedPart *models.BodyPart
 }
 
 func NewMailMachine(m *models.Mail) *lib.Machine {
-	path := m.FindPlaintext()
-	if path == nil {
-		path = m.FindFirstNonMultipart()
+	part := m.FindPlaintext()
+	if part == nil {
+		part = m.FindFirstNonMultipart()
 	}
 	return lib.NewMachine(
-		&MailMachineCtx{m, "", path},
+		&MailMachineCtx{m, "", part},
 		STATE_LOAD_MAIL,
 		lib.States{
 			STATE_SHOW_MAIL_PARTS: &lib.State{
@@ -39,8 +39,8 @@ func NewMailMachine(m *models.Mail) *lib.Machine {
 						Target: STATE_SHOW_MAIL,
 						Action: func(c interface{}, ev *lib.Event) {
 							state := c.(*MailMachineCtx)
-							bp := ev.Payload.(models.BodyPath)
-							state.SelectedPart = &bp
+							bp := ev.Payload.(*models.BodyPart)
+							state.SelectedPart = bp
 						},
 					},
 				},

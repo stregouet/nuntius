@@ -58,8 +58,8 @@ func (mv *MailView) SetPartsView(view *views.ViewPort) {
 	mv.partsView.SetViewPort(view, nil)
 }
 
-func (mv *MailView) onSelectPart(path models.BodyPath) {
-	ev := &lib.Event{sm.TR_SHOW_MAIL_PART, path}
+func (mv *MailView) onSelectPart(part *models.BodyPart) {
+	ev := &lib.Event{sm.TR_SHOW_MAIL_PART, part}
 	mv.machine.Send(ev)
 }
 
@@ -120,7 +120,7 @@ func (mv *MailView) Draw() {
 			return
 		}
 		var body io.Reader
-		selectedpath, err := state.SelectedPart.ToMessagePath()
+		selectedpath, err := state.SelectedPart.Path.ToMessagePath()
 		if err != nil {
 			App.logger.Errorf("cannot build message path %v", err)
 			return
