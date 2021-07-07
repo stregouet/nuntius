@@ -12,8 +12,8 @@ import (
 	"github.com/stregouet/nuntius/lib"
 	"github.com/stregouet/nuntius/models"
 	sm "github.com/stregouet/nuntius/statesmachines"
+	"github.com/stregouet/nuntius/widgets"
 	"github.com/stregouet/nuntius/workers"
-	// "github.com/stregouet/nuntius/widgets"
 )
 
 type Window struct {
@@ -43,7 +43,7 @@ func NewWindow(cfg *config.Config) *Window {
 		case sm.TR_COMPOSE_MAIL:
 			// XXX it should be possible to choose account user want to send mail with
 			c := NewComposeView(cfg.Accounts[0], w.bindings[config.KEY_MODE_COMPOSE], w.Errorf)
-			w.machine.Send(&lib.Event{sm.TR_OPEN_TAB, &sm.Tab{c, "compose"}})
+			w.addTab(c, "compose")
 		case sm.TR_OPEN_TAB:
 			w.onOpenTab(ev)
 			w.AskRedraw()
@@ -83,10 +83,14 @@ func NewWindow(cfg *config.Config) *Window {
 				}
 				return nil
 			})
-		w.machine.Send(&lib.Event{sm.TR_OPEN_TAB, &sm.Tab{accwidget, c.Name}})
+		w.addTab(accwidget, c.Name)
 	}
 
 	return w
+}
+
+func (w *Window) addTab(content widgets.Widget, title string) {
+	w.machine.Send(&lib.Event{sm.TR_OPEN_TAB, &sm.Tab{content, title}})
 }
 
 func (w *Window) state() *sm.WindowMachineCtx {
@@ -112,7 +116,7 @@ func (w *Window) onSelectMailbox(acc string, mailbox *models.Mailbox) {
 			}
 			return nil
 		})
-	w.machine.Send(&lib.Event{sm.TR_OPEN_TAB, &sm.Tab{mv, mailbox.TabTitle()}})
+	w.addTab(mv, mailbox.TabTitle())
 }
 
 func (w *Window) onSelectThread(acc, mailbox string, thread *models.Thread) {
@@ -131,7 +135,7 @@ func (w *Window) onSelectThread(acc, mailbox string, thread *models.Thread) {
 			}
 			return nil
 		})
-	w.machine.Send(&lib.Event{sm.TR_OPEN_TAB, &sm.Tab{tv, thread.Subject}})
+	w.addTab(tv, thread.Subject)
 }
 
 func (w *Window) onSelectMail(acc, mailbox string, mail *models.Mail) {
@@ -154,7 +158,7 @@ func (w *Window) onSelectMail(acc, mailbox string, mail *models.Mail) {
 			}
 			return nil
 		})
-	w.machine.Send(&lib.Event{sm.TR_OPEN_TAB, &sm.Tab{mv, mail.Subject}})
+	w.addTab(mv, mail.Subject)
 }
 
 func (w *Window) onOpenTab(ev *lib.Event) {
