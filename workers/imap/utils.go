@@ -97,20 +97,20 @@ func listRecipients(h *mail.Header) ([]*mail.Address, error) {
 }
 
 func encodeHeaderFields(h *mail.Header) error {
-    fields := h.Fields()
-    newfields := make([][2]string, 0)
-    for fields.Next() {
+	fields := h.Fields()
+	newfields := make([][2]string, 0)
+	for fields.Next() {
 		val, err := fields.Text()
 		if err != nil {
 			return err
 		}
-        newfields = append(newfields, [2]string{
-            fields.Key(),
-            val,
-        })
-    }
+		newfields = append(newfields, [2]string{
+			fields.Key(),
+			val,
+		})
+	}
 
-    for _, field := range newfields {
+	for _, field := range newfields {
 		key, val := field[0], field[1]
 		switch strings.ToLower(key) {
 		case "to", "from", "cc", "bcc":
@@ -122,6 +122,6 @@ func encodeHeaderFields(h *mail.Header) error {
 		default:
 			h.SetText(key, val)
 		}
-    }
+	}
 	return nil
 }

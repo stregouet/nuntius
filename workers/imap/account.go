@@ -1,9 +1,9 @@
 package imap
 
 import (
-	"io"
 	"bufio"
 	"fmt"
+	"io"
 	"os"
 	"path"
 	"strings"
@@ -153,7 +153,7 @@ func (a *Account) handleFetchFullMail(msg *workers.FetchFullMail) (workers.Messa
 	if err != nil {
 		return nil, err
 	}
-	section := &imap.BodySectionName{Peek: true}  // XXX remove Peek
+	section := &imap.BodySectionName{Peek: true} // XXX remove Peek
 	items := []imap.FetchItem{
 		imap.FetchEnvelope,
 		imap.FetchFlags,
@@ -386,7 +386,6 @@ func (a *Account) handleSendMail(msg *workers.SendMail) error {
 		return errors.Wrap(err, "while issuing data cmd")
 	}
 	defer writer.Close()
-
 
 	header.SetContentType("text/plain", map[string]string{"charset": "UTF-8"})
 	w, err := mail.CreateSingleInlineWriter(writer, *header)

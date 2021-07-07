@@ -26,8 +26,8 @@ type Widget interface {
 
 type BaseWidget struct {
 	redrawCb func()
-	viewCb func(view *views.ViewPort, screen tcell.Screen)
-	msgCb func(msg string, args ...interface{})
+	viewCb   func(view *views.ViewPort, screen tcell.Screen)
+	msgCb    func(msg string, args ...interface{})
 	view     *views.ViewPort
 	screen   tcell.Screen
 }
@@ -57,7 +57,6 @@ func (b *BaseWidget) Clear() {
 		b.view.Clear()
 	}
 }
-
 
 func (b *BaseWidget) OnSetViewPort(f func(view *views.ViewPort, screen tcell.Screen)) {
 	b.viewCb = f
@@ -101,7 +100,7 @@ func (b *BaseWidget) ShowCursor(x int, y int) {
 func (b *BaseWidget) IsActiveTerm() bool {
 	return false
 }
-	
+
 func (b *BaseWidget) HandleTransitions(ev *lib.Event) bool {
 	return false
 }

@@ -19,7 +19,6 @@ func (cs *ContentWithStyle) Reverse(should bool) tcell.Style {
 	return cs.Style.Reverse(should)
 }
 
-
 type IStyled interface {
 	StyledContent() []*ContentWithStyle
 }

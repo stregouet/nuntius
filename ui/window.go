@@ -270,7 +270,7 @@ func (w *Window) HandleEvent(ev tcell.Event) bool {
 	return false
 }
 
-func (w *Window) HandleTransitions (ev *lib.Event) {
+func (w *Window) HandleTransitions(ev *lib.Event) {
 	s := w.state()
 	if w.ex.HandleTransitions(ev) {
 		return

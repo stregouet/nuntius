@@ -21,7 +21,7 @@ const (
 
 type ComposeMachineCtx struct {
 	MailFile *os.File
-	Body string
+	Body     string
 }
 
 func NewComposeMachine(mailfile *os.File) *lib.Machine {
@@ -64,7 +64,7 @@ func NewComposeMachine(mailfile *os.File) *lib.Machine {
 							}()
 							state.MailFile.Sync()
 							state.MailFile.Seek(0, io.SeekStart)
-						    content, err := io.ReadAll(state.MailFile)
+							content, err := io.ReadAll(state.MailFile)
 							if err != nil {
 								// XXX handle error
 							}

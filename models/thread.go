@@ -37,7 +37,6 @@ func (t *Thread) StyledContent() []*widgets.ContentWithStyle {
 	}
 }
 
-
 func (m *Mail) hasParent(tx *sql.Tx) (int, error) {
 	row := tx.QueryRow("SELECT threadid FROM mail WHERE messageid = ?", m.InReplyTo)
 	var id int

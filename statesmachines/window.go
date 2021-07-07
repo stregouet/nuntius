@@ -6,12 +6,12 @@ import (
 )
 
 const (
-	STATE_SHOW_TAB lib.StateType      = "SHOW_TAB"
-	TR_OPEN_TAB    lib.TransitionType = "OPEN_TAB"
-	TR_CLOSE_TAB   lib.TransitionType = "CLOSE_TAB"
-	TR_NEXT_TAB    lib.TransitionType = "NEXT_TAB"
-	TR_PREV_TAB    lib.TransitionType = "PREV_TAB"
-	TR_CLOSE_APP   lib.TransitionType = "CLOSE_APP"
+	STATE_SHOW_TAB  lib.StateType      = "SHOW_TAB"
+	TR_OPEN_TAB     lib.TransitionType = "OPEN_TAB"
+	TR_CLOSE_TAB    lib.TransitionType = "CLOSE_TAB"
+	TR_NEXT_TAB     lib.TransitionType = "NEXT_TAB"
+	TR_PREV_TAB     lib.TransitionType = "PREV_TAB"
+	TR_CLOSE_APP    lib.TransitionType = "CLOSE_APP"
 	TR_COMPOSE_MAIL lib.TransitionType = "COMPOSE_MAIL"
 
 	STATE_WRITE_CMD  lib.StateType      = "WRITE_CMD"

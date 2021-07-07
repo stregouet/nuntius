@@ -200,7 +200,7 @@ func (d *Database) handleInsertNewMessages(db *sql.DB, msg *InsertNewMessages) (
 			return nil, rollback(err, "while updating threadid")
 		}
 		alreadydone[root.Id] = struct{}{}
-		if idx > 0 && idx % 100 == 0 {
+		if idx > 0 && idx%100 == 0 {
 			d.logger.Debugf("update root (%d/%d)", idx, len(msg.Mails))
 		}
 	}

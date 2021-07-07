@@ -110,7 +110,7 @@ func (t *TreeWidget) Draw() {
 		coloffset := 0
 		for _, withstyle := range line.StyledContent() {
 			coloffset += t.Print(
-				len(arrowCells) + coloffset,
+				len(arrowCells)+coloffset,
 				y,
 				withstyle.Reverse(linenum == t.selected),
 				withstyle.Content,

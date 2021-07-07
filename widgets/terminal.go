@@ -10,7 +10,7 @@ import (
 	vterm "github.com/ddevault/go-libvterm"
 	"github.com/gdamore/tcell/v2"
 
-    "github.com/stregouet/nuntius/lib"
+	"github.com/stregouet/nuntius/lib"
 )
 
 type vtermKey struct {
@@ -115,7 +115,7 @@ type Terminal struct {
 func NewTerminal(cmd *exec.Cmd) *Terminal {
 	term := &Terminal{
 		cursorShown: true,
-		focus: true,
+		focus:       true,
 	}
 	term.cmd = cmd
 	term.vterm = vterm.New(24, 80)
@@ -141,7 +141,7 @@ func NewTerminal(cmd *exec.Cmd) *Terminal {
 			}
 			screen.Flush()
 			term.flushTerminal()
-            term.AskRedraw()
+			term.AskRedraw()
 		}
 	}()
 	screen.OnDamage = term.onDamage
@@ -195,7 +195,6 @@ func (term *Terminal) Close(err error) {
 	term.closed = true
 }
 
-
 func (term *Terminal) Destroy() {
 	if term.destroyed {
 		return
@@ -221,7 +220,7 @@ func (term *Terminal) Draw() {
 	if term.destroyed {
 		return
 	}
-    term.Invalidate()
+	term.Invalidate()
 
 	w, h := term.BaseWidget.view.Size()
 	if !term.closed {
@@ -310,7 +309,6 @@ func (term *Terminal) Draw() {
 	}
 }
 
-
 func (term *Terminal) MouseEvent(localX int, localY int, event tcell.Event) {
 	switch event := event.(type) {
 	case *tcell.EventMouse:
@@ -358,11 +356,11 @@ func convertMods(mods tcell.ModMask) vterm.Modifier {
 }
 
 func (term *Terminal) HandleEvent(ks []*lib.KeyStroke) bool {
-    k := ks[0]
-    if k == nil {
-        return false
-    }
-    return term.Event(k.Tev)
+	k := ks[0]
+	if k == nil {
+		return false
+	}
+	return term.Event(k.Tev)
 }
 
 func (term *Terminal) Event(event tcell.Event) bool {
@@ -449,7 +447,7 @@ func (term *Terminal) onDamage(rect *vterm.Rect) int {
 	term.damageMutex.Lock()
 	term.damage = append(term.damage, *rect)
 	term.damageMutex.Unlock()
-    term.AskRedraw()
+	term.AskRedraw()
 	return 1
 }
 
@@ -462,7 +460,7 @@ func (term *Terminal) onMoveCursor(old *vterm.Pos,
 	}
 
 	term.cursorPos = *pos
-    term.AskRedraw()
+	term.AskRedraw()
 	return 1
 }
 
@@ -474,7 +472,7 @@ func (term *Terminal) onSetTermProp(prop int, val *vterm.VTermValue) int {
 		}
 	case vterm.VTERM_PROP_CURSORVISIBLE:
 		term.cursorShown = val.Boolean
-        term.AskRedraw()
+		term.AskRedraw()
 	}
 	return 1
 }

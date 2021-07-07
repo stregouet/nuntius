@@ -54,21 +54,19 @@ type Done struct {
 	BaseMessage
 }
 
-
 type Error struct {
 	BaseMessage
 	Error error
 }
 
-
 type FetchThread struct {
 	BaseMessage
-	RootId       int
+	RootId int
 }
 
 type FetchThreadRes struct {
 	BaseMessage
-	Mails        []*models.Mail
+	Mails []*models.Mail
 }
 
 type FetchMailboxRes struct {
@@ -79,15 +77,14 @@ type FetchMailboxRes struct {
 
 type FetchFullMail struct {
 	BaseMessage
-	Mailbox  string
-	Uid      uint32
+	Mailbox string
+	Uid     uint32
 }
 
 type FetchFullMailRes struct {
 	BaseMessage
 	Filepath string
 }
-
 
 type FetchNewMessages struct {
 	BaseMessage
@@ -132,7 +129,6 @@ type FetchMailboxesImapRes struct {
 	BaseMessage
 	Mailboxes []*models.Mailbox
 }
-
 
 type FetchMailboxes struct {
 	BaseMessage

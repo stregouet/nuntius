@@ -24,9 +24,9 @@ type Application struct {
 	window *Window
 	// style    tcell.Style
 	transitions chan *lib.Event
-	tcEvents chan tcell.Event
-	cbId     int
-	done     chan struct{}
+	tcEvents    chan tcell.Event
+	cbId        int
+	done        chan struct{}
 
 	dbcallbacks   map[int]PostCallback
 	imapcallbacks map[int]PostCallback

@@ -1,12 +1,10 @@
 package lib
 
 import (
-    "fmt"
-    "os"
+	"fmt"
+	"os"
 	"runtime/debug"
 )
-
-
 
 func Recover(logger *Logger, cb func()) {
 	var err interface{}
@@ -17,9 +15,9 @@ func Recover(logger *Logger, cb func()) {
 	}
 	logger.Debugf("recoverterm error %v", err)
 	debug.PrintStack()
-    if cb != nil {
-        cb()
-    }
+	if cb != nil {
+		cb()
+	}
 	fmt.Fprintf(os.Stderr, "nuntius crashed: %v\n", err)
 	os.Exit(1)
 }

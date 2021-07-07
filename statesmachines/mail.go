@@ -6,14 +6,14 @@ import (
 )
 
 const (
-	STATE_LOAD_MAIL     lib.StateType      = "LOAD_MAIL"
-	STATE_SHOW_MAIL     lib.StateType      = "SHOW_MAIL"
+	STATE_LOAD_MAIL       lib.StateType      = "LOAD_MAIL"
+	STATE_SHOW_MAIL       lib.StateType      = "SHOW_MAIL"
 	STATE_SHOW_MAIL_PARTS lib.StateType      = "SHOW_MAIL_PARTS"
-	TR_SCROLL_UP_MAIL   lib.TransitionType = "SCROLL_UP_MAIL"
-	TR_SCROLL_DOWN_MAIL lib.TransitionType = "SCROLL_DOWN_MAIL"
-	TR_SET_FILEPATH     lib.TransitionType = "SET_FILEPATH"
-	TR_SHOW_MAIL_PARTS  lib.TransitionType = "SHOW_MAIL_PARTS"
-	TR_SHOW_MAIL_PART   lib.TransitionType = "SHOW_MAIL_PART"
+	TR_SCROLL_UP_MAIL     lib.TransitionType = "SCROLL_UP_MAIL"
+	TR_SCROLL_DOWN_MAIL   lib.TransitionType = "SCROLL_DOWN_MAIL"
+	TR_SET_FILEPATH       lib.TransitionType = "SET_FILEPATH"
+	TR_SHOW_MAIL_PARTS    lib.TransitionType = "SHOW_MAIL_PARTS"
+	TR_SHOW_MAIL_PART     lib.TransitionType = "SHOW_MAIL_PART"
 	// TR_DOWN_MAIL      lib.TransitionType = "DOWN_MAIL"
 	// TR_SET_MAILS      lib.TransitionType = "SET_MAILS"
 )

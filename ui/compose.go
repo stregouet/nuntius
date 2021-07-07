@@ -106,7 +106,6 @@ func (c *ComposeView) setTerminal() {
 	})
 }
 
-
 func (c *ComposeView) err(msg string, format ...interface{}) {
 	App.logger.Errorf(msg, format...)
 	c.machine.Send(&lib.Event{sm.TR_COMPOSE_SET_ERR, nil})
@@ -125,7 +124,7 @@ func (c *ComposeView) drawMail(content string) {
 	hf := msg.Header.Fields()
 	line := 0
 	for hf.Next() {
-		offset := c.Print(0, line, bold, hf.Key() + ": ")
+		offset := c.Print(0, line, bold, hf.Key()+": ")
 		val, err := hf.Text()
 		if err != nil {
 			c.err("cannot parse header field %v", err)
@@ -182,6 +181,6 @@ func (c *ComposeView) HandleEvent(ks []*lib.KeyStroke) bool {
 	return false
 }
 
-func (c *ComposeView) HandleTransitions (ev *lib.Event) bool {
+func (c *ComposeView) HandleTransitions(ev *lib.Event) bool {
 	return c.machine.Send(ev)
 }

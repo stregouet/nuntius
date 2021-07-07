@@ -1,8 +1,8 @@
 package ui
 
 import (
-	"bytes"
 	"bufio"
+	"bytes"
 	"errors"
 	"io"
 	"os"
@@ -49,7 +49,7 @@ func NewMailView(bindings config.Mapping, partsBindings config.Mapping, filters 
 		machine:    machine,
 		bindings:   bindings,
 		BaseWidget: &b,
-		filters:   filters,
+		filters:    filters,
 	}
 	mv.partsView = NewMailPartsView(partsBindings, mail.Parts, mv.onSelectPart)
 	mv.partsView.AskingRedraw(func() {
@@ -100,7 +100,7 @@ func (mv *MailView) drawBody(mailbody io.Reader, lineoffset int) {
 		stdin, err := cmd.StdinPipe()
 		if err != nil {
 			App.logger.Errorf("error running cmd %v", err)
-			mv.Print(0, line, style,"error running cmd")
+			mv.Print(0, line, style, "error running cmd")
 			return
 		}
 		go func() {
@@ -170,7 +170,7 @@ func (mv *MailView) Draw() {
 			mv.drawBody(body, offset)
 		} else {
 			App.logger.Debugf("cannot find selected part %v", state.SelectedPart)
-			mv.Print(0, 0, style, "no body for selected part (see mail at: " + state.Filepath + ")")
+			mv.Print(0, 0, style, "no body for selected part (see mail at: "+state.Filepath+")")
 		}
 	}
 }

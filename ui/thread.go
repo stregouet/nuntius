@@ -2,8 +2,8 @@ package ui
 
 import (
 	"github.com/stregouet/nuntius/config"
-	"github.com/stregouet/nuntius/models"
 	"github.com/stregouet/nuntius/lib"
+	"github.com/stregouet/nuntius/models"
 	sm "github.com/stregouet/nuntius/statesmachines"
 	"github.com/stregouet/nuntius/widgets"
 )

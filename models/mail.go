@@ -1,10 +1,10 @@
 package models
 
 import (
-    "fmt"
-    "strconv"
-    "strings"
-    "time"
+	"fmt"
+	"strconv"
+	"strings"
+	"time"
 
 	"github.com/emersion/go-imap"
 	"github.com/emersion/go-message/mail"
@@ -18,12 +18,11 @@ import (
 
 type BodyPath string
 
-
 func (bp BodyPath) ToMessagePath() ([]int, error) {
 	s := strings.TrimPrefix(string(bp), "/")
-    if s == "" {
-        return []int{}, nil
-    }
+	if s == "" {
+		return []int{}, nil
+	}
 	parts := strings.Split(s, "/")
 	res := make([]int, len(parts))
 	for idx, p := range parts {
@@ -40,12 +39,12 @@ func BodyPathFromMessagePath(p []int) BodyPath {
 	if len(p) == 0 {
 		return "/"
 	}
-    buf := new(strings.Builder)
-    for _, p := range p {
-        buf.WriteByte('/')
-        buf.WriteString(strconv.Itoa(p))
-    }
-    return BodyPath(buf.String())
+	buf := new(strings.Builder)
+	for _, p := range p {
+		buf.WriteByte('/')
+		buf.WriteString(strconv.Itoa(p))
+	}
+	return BodyPath(buf.String())
 }
 
 type BodyPart struct {
@@ -84,8 +83,8 @@ func (bp *BodyPart) StyledContent() []*widgets.ContentWithStyle {
 
 func bodyPartsFromImapParts(bs *imap.BodyStructure, parts []*BodyPart, path []int) []*BodyPart {
 	result := append(parts, &BodyPart{
-		Path: BodyPathFromMessagePath(path),
-		MIMEType: bs.MIMEType,
+		Path:        BodyPathFromMessagePath(path),
+		MIMEType:    bs.MIMEType,
 		MIMESubType: bs.MIMESubType,
 	})
 	if bs.Parts != nil {

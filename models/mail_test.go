@@ -61,95 +61,95 @@ func TestBodyStructure(t *testing.T) {
 	}{
 		{
 			input: imap.BodyStructure{
-				MIMEType: "multipart",
+				MIMEType:    "multipart",
 				MIMESubType: "mixed",
 				Parts: []*imap.BodyStructure{
 					&imap.BodyStructure{
-						MIMEType: "text",
+						MIMEType:    "text",
 						MIMESubType: "plain",
 					},
 					&imap.BodyStructure{
-						MIMEType: "message",
+						MIMEType:    "message",
 						MIMESubType: "rfc822",
 					},
 					&imap.BodyStructure{
-						MIMEType: "message",
+						MIMEType:    "message",
 						MIMESubType: "rfc822",
 					},
 				},
 			},
 			expected: []*BodyPart{
 				&BodyPart{
-					Path: "/",
-					MIMEType: "multipart",
+					Path:        "/",
+					MIMEType:    "multipart",
 					MIMESubType: "mixed",
 				},
 				&BodyPart{
-					Path: "/0",
-					MIMEType: "text",
+					Path:        "/0",
+					MIMEType:    "text",
 					MIMESubType: "plain",
 				},
 				&BodyPart{
-					Path: "/1",
-					MIMEType: "message",
+					Path:        "/1",
+					MIMEType:    "message",
 					MIMESubType: "rfc822",
 				},
 				&BodyPart{
-					Path: "/2",
-					MIMEType: "message",
+					Path:        "/2",
+					MIMEType:    "message",
 					MIMESubType: "rfc822",
 				},
 			},
 		},
 		{
 			input: imap.BodyStructure{
-				MIMEType: "multipart",
+				MIMEType:    "multipart",
 				MIMESubType: "mixed",
 				Parts: []*imap.BodyStructure{
 					&imap.BodyStructure{
-						MIMEType: "multipart",
+						MIMEType:    "multipart",
 						MIMESubType: "alternative",
 						Parts: []*imap.BodyStructure{
 							&imap.BodyStructure{
-								MIMEType: "text",
+								MIMEType:    "text",
 								MIMESubType: "plain",
 							},
 							&imap.BodyStructure{
-								MIMEType: "text",
+								MIMEType:    "text",
 								MIMESubType: "html",
 							},
 						},
 					},
 					&imap.BodyStructure{
-						MIMEType: "application",
+						MIMEType:    "application",
 						MIMESubType: "pgp-keys",
 					},
 				},
 			},
 			expected: []*BodyPart{
 				&BodyPart{
-					Path: "/",
-					MIMEType: "multipart",
+					Path:        "/",
+					MIMEType:    "multipart",
 					MIMESubType: "mixed",
 				},
 				&BodyPart{
-					Path: "/0",
-					MIMEType: "multipart",
+					Path:        "/0",
+					MIMEType:    "multipart",
 					MIMESubType: "alternative",
 				},
 				&BodyPart{
-					Path: "/0/0",
-					MIMEType: "text",
+					Path:        "/0/0",
+					MIMEType:    "text",
 					MIMESubType: "plain",
 				},
 				&BodyPart{
-					Path: "/0/1",
-					MIMEType: "text",
+					Path:        "/0/1",
+					MIMEType:    "text",
 					MIMESubType: "html",
 				},
 				&BodyPart{
-					Path: "/1",
-					MIMEType: "application",
+					Path:        "/1",
+					MIMEType:    "application",
 					MIMESubType: "pgp-keys",
 				},
 			},

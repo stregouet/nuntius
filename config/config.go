@@ -24,7 +24,7 @@ type SmtpCfg struct {
 	Tls     bool
 	PassCmd string
 	// either plain, login, none
-	Auth    string
+	Auth string
 }
 
 type Account struct {

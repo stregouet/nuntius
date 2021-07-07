@@ -9,7 +9,7 @@ import (
 )
 
 type MailPartsView struct {
-	machine *lib.Machine
+	machine  *lib.Machine
 	bindings config.Mapping
 	*widgets.TreeWidget
 }
