@@ -42,7 +42,7 @@ func NewWindow(cfg *config.Config) *Window {
 		switch ev.Transition {
 		case sm.TR_COMPOSE_MAIL:
 			// XXX it should be possible to choose account user want to send mail with
-			c := NewComposeView(cfg.Accounts[0], w.bindings[config.KEY_MODE_COMPOSE], w.Errorf)
+			c := NewComposeView(cfg.Accounts[0], w.bindings[config.KEY_MODE_COMPOSE])
 			w.addTab(c)
 		case sm.TR_OPEN_TAB:
 			w.onOpenTab(ev)
@@ -120,7 +120,12 @@ func (w *Window) onSelectMailbox(acc string, mailbox *models.Mailbox) {
 }
 
 func (w *Window) onSelectThread(acc, mailbox string, thread *models.Thread) {
-	tv := NewThreadView(acc, mailbox, thread.Subject, w.bindings[config.KEY_MODE_THREAD], w.onSelectMail)
+	var tab sm.Tab
+	if thread.Count == 1 {
+		tab = w.buildMailView()
+	} else {
+		tab = NewThreadView(acc, mailbox, thread.Subject, w.bindings[config.KEY_MODE_THREAD], w.onSelectMail)
+	}
 	App.PostDbMessage(
 		&workers.FetchThread{RootId: thread.RootId},
 		acc,
@@ -129,35 +134,27 @@ func (w *Window) onSelectThread(acc, mailbox string, thread *models.Thread) {
 			case *workers.Error:
 				w.ShowMessage(r.Error.Error())
 			case *workers.FetchThreadRes:
-				tv.SetMails(r.Mails)
+				switch t := tab.(type) {
+				case *MailView:
+					t.SetMail(r.Mails[0], mailbox, acc)
+				case *ThreadView:
+					t.SetMails(r.Mails)
+				}
 			default:
 				App.logger.Error("unknown response type")
 			}
 			return nil
 		})
-	w.addTab(tv)
+	w.addTab(tab)
+}
+
+func (w *Window) buildMailView() *MailView {
+	return NewMailView(w.bindings[config.KEY_MODE_MAIL], w.bindings[config.KEY_MODE_PARTS], w.filters)
 }
 
 func (w *Window) onSelectMail(acc, mailbox string, mail *models.Mail) {
-	mv := NewMailView(w.bindings[config.KEY_MODE_MAIL], w.bindings[config.KEY_MODE_PARTS], w.filters, mail)
-	mv.OnSetViewPort(func(view *views.ViewPort, screen tcell.Screen) {
-		mv.SetPartsView(view)
-	})
-	App.PostImapMessage(
-		&workers.FetchFullMail{Uid: mail.Uid, Mailbox: mailbox},
-		acc,
-		func(response workers.Message) error {
-			switch r := response.(type) {
-			case *workers.Error:
-				w.ShowMessage(r.Error.Error())
-			case *workers.FetchFullMailRes:
-				mv.SetFilepath(r.Filepath)
-				App.logger.Debugf("full mail received, `%v`", r.Filepath)
-			default:
-				App.logger.Error("unknown response type")
-			}
-			return nil
-		})
+	mv := w.buildMailView()
+	mv.SetMail(mail, mailbox, acc)
 	w.addTab(mv)
 }
 
@@ -170,6 +167,7 @@ func (w *Window) onOpenTab(ev *lib.Event) {
 		w.screen.Clear()
 		tab.SetViewPort(w.tabViewPort(), w.screen)
 	}
+	tab.OnMessage(w.Errorf)
 }
 
 func (w *Window) tabViewPort() *views.ViewPort {

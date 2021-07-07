@@ -14,6 +14,7 @@ const (
 	TR_SET_FILEPATH       lib.TransitionType = "SET_FILEPATH"
 	TR_SHOW_MAIL_PARTS    lib.TransitionType = "SHOW_MAIL_PARTS"
 	TR_SHOW_MAIL_PART     lib.TransitionType = "SHOW_MAIL_PART"
+	TR_SET_MAIL           lib.TransitionType = "TR_SET_MAIL"
 	// TR_DOWN_MAIL      lib.TransitionType = "DOWN_MAIL"
 	// TR_SET_MAILS      lib.TransitionType = "SET_MAILS"
 )
@@ -24,13 +25,9 @@ type MailMachineCtx struct {
 	SelectedPart *models.BodyPart
 }
 
-func NewMailMachine(m *models.Mail) *lib.Machine {
-	part := m.FindPlaintext()
-	if part == nil {
-		part = m.FindFirstNonMultipart()
-	}
+func NewMailMachine() *lib.Machine {
 	return lib.NewMachine(
-		&MailMachineCtx{m, "", part},
+		&MailMachineCtx{},
 		STATE_LOAD_MAIL,
 		lib.States{
 			STATE_SHOW_MAIL_PARTS: &lib.State{
@@ -53,6 +50,19 @@ func NewMailMachine(m *models.Mail) *lib.Machine {
 							state := c.(*MailMachineCtx)
 							filepath := ev.Payload.(string)
 							state.Filepath = filepath
+						},
+					},
+					TR_SET_MAIL: &lib.Transition{
+						Target: STATE_LOAD_MAIL,
+						Action: func(c interface{}, ev *lib.Event) {
+							state := c.(*MailMachineCtx)
+							m := ev.Payload.(*models.Mail)
+							state.Mail = m
+							part := m.FindPlaintext()
+							if part == nil {
+								part = m.FindFirstNonMultipart()
+							}
+							state.SelectedPart = part
 						},
 					},
 				},

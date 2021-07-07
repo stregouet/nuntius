@@ -19,6 +19,7 @@ type Widget interface {
 
 	AskRedraw()
 	AskingRedraw(func())
+	OnMessage(f func(msg string, args ...interface{}))
 
 	Resize()
 	Size() (int, int)

@@ -27,7 +27,7 @@ type ComposeView struct {
 	*widgets.BaseWidget
 }
 
-func NewComposeView(acc *config.Account, bindings config.Mapping, msgCb func(msg string, args ...interface{})) *ComposeView {
+func NewComposeView(acc *config.Account, bindings config.Mapping) *ComposeView {
 	email, err := ioutil.TempFile("", "nuntius-*.eml")
 	machine := sm.NewComposeMachine(email)
 	if err != nil {
@@ -40,7 +40,6 @@ func NewComposeView(acc *config.Account, bindings config.Mapping, msgCb func(msg
 		bindings:   bindings,
 		BaseWidget: b,
 	}
-	b.OnMessage(msgCb)
 	c.setTerminal()
 	machine.OnTransition(func(s lib.StateType, ctx interface{}, ev *lib.Event) {
 		switch ev.Transition {

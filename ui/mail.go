@@ -11,13 +11,13 @@ import (
 	"github.com/emersion/go-message"
 	_ "github.com/emersion/go-message/charset"
 	"github.com/gdamore/tcell/v2"
-	"github.com/gdamore/tcell/v2/views"
 
 	"github.com/stregouet/nuntius/config"
 	"github.com/stregouet/nuntius/lib"
 	"github.com/stregouet/nuntius/models"
 	sm "github.com/stregouet/nuntius/statesmachines"
 	"github.com/stregouet/nuntius/widgets"
+	"github.com/stregouet/nuntius/workers"
 )
 
 var ErrStopWalk = errors.New("stop walk")
@@ -30,9 +30,15 @@ type MailView struct {
 	*widgets.BaseWidget
 }
 
-func NewMailView(bindings config.Mapping, partsBindings config.Mapping, filters config.Filters, mail *models.Mail) *MailView {
+func NewMailView(bindings config.Mapping, partsBindings config.Mapping, filters config.Filters) *MailView {
 	b := widgets.BaseWidget{}
-	machine := sm.NewMailMachine(mail)
+	machine := sm.NewMailMachine()
+	mv := &MailView{
+		machine:    machine,
+		bindings:   bindings,
+		BaseWidget: &b,
+		filters:    filters,
+	}
 	machine.OnTransition(func(s lib.StateType, ctx interface{}, ev *lib.Event) {
 		switch ev.Transition {
 		case sm.TR_SCROLL_UP_MAIL:
@@ -43,29 +49,44 @@ func NewMailView(bindings config.Mapping, partsBindings config.Mapping, filters 
 			b.AskRedraw()
 		case sm.TR_SHOW_MAIL_PARTS, sm.TR_SHOW_MAIL_PART:
 			b.AskRedraw()
+		case sm.TR_SET_MAIL:
+			state := ctx.(*sm.MailMachineCtx)
+			mv.partsView = NewMailPartsView(partsBindings, state.Mail.Parts, mv.onSelectPart)
+			mv.partsView.AskingRedraw(func() {
+				mv.AskRedraw()
+			})
 		}
-	})
-	mv := &MailView{
-		machine:    machine,
-		bindings:   bindings,
-		BaseWidget: &b,
-		filters:    filters,
-	}
-	mv.partsView = NewMailPartsView(partsBindings, mail.Parts, mv.onSelectPart)
-	mv.partsView.AskingRedraw(func() {
-		mv.AskRedraw()
 	})
 	return mv
 }
 
 // Tab interface
 func (mv *MailView) TabTitle() string {
+	if mv.machine.Current == sm.STATE_LOAD_MAIL {
+		return "load mail…"
+	}
 	s := mv.state()
 	return s.Mail.Subject
 }
 
-func (mv *MailView) SetPartsView(view *views.ViewPort) {
-	mv.partsView.SetViewPort(view, nil)
+func (mv *MailView) SetMail(m *models.Mail, mailbox, acc string) {
+	ev := &lib.Event{sm.TR_SET_MAIL, m}
+	mv.machine.Send(ev)
+	App.PostImapMessage(
+		&workers.FetchFullMail{Uid: m.Uid, Mailbox: mailbox},
+		acc,
+		func(response workers.Message) error {
+			switch r := response.(type) {
+			case *workers.Error:
+				mv.Messagef("error fetching mail content %v", r.Error)
+			case *workers.FetchFullMailRes:
+				mv.SetFilepath(r.Filepath)
+				App.logger.Debugf("full mail received, `%v`", r.Filepath)
+			default:
+				App.logger.Error("unknown response type")
+			}
+			return nil
+		})
 }
 
 func (mv *MailView) onSelectPart(part *models.BodyPart) {
@@ -140,6 +161,9 @@ func (mv *MailView) Draw() {
 	if mv.machine.Current == sm.STATE_LOAD_MAIL {
 		mv.Print(0, 0, style, "loading...")
 	} else if mv.machine.Current == sm.STATE_SHOW_MAIL_PARTS {
+		if mv.partsView.GetViewPort() == nil {
+			mv.partsView.SetViewPort(mv.GetViewPort(), nil)
+		}
 		mv.partsView.Draw()
 	} else {
 		state := mv.state()
