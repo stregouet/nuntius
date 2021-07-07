@@ -11,10 +11,11 @@ import (
 type ThreadView struct {
 	machine  *lib.Machine
 	bindings config.Mapping
+	subject  string
 	*widgets.TreeWidget
 }
 
-func NewThreadView(accname, mailbox string, bindings config.Mapping, onSelect func(accname, mailbox string, m *models.Mail)) *ThreadView {
+func NewThreadView(accname, mailbox, subject string, bindings config.Mapping, onSelect func(accname, mailbox string, m *models.Mail)) *ThreadView {
 	t := widgets.NewTree()
 	machine := sm.NewThreadMachine()
 	machine.OnTransition(func(s lib.StateType, ctx interface{}, ev *lib.Event) {
@@ -29,8 +30,14 @@ func NewThreadView(accname, mailbox string, bindings config.Mapping, onSelect fu
 	return &ThreadView{
 		machine:    machine,
 		bindings:   bindings,
+		subject:    subject,
 		TreeWidget: t,
 	}
+}
+
+// Tab interface
+func (tv *ThreadView) TabTitle() string {
+	return tv.subject
 }
 
 func (tv *ThreadView) SetMails(mails []*models.Mail) {

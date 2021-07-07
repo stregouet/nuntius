@@ -81,6 +81,11 @@ func NewComposeView(acc *config.Account, bindings config.Mapping, msgCb func(msg
 	return c
 }
 
+// Tab interface
+func (c *ComposeView) TabTitle() string {
+	return "compose"
+}
+
 func (c *ComposeView) setTermView(view *views.ViewPort, screen tcell.Screen) {
 	if c.term != nil {
 		c.term.SetViewPort(view, screen)

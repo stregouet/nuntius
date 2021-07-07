@@ -30,17 +30,6 @@ func (m *Mailbox) Depth() int {
 	return m.directoryDepth
 }
 
-func (m *Mailbox) TabTitle() string {
-	name := m.Name
-	if m.ShortName != "" {
-		name = m.ShortName
-	}
-	if len(name) > 8 {
-		name = name[:8] + "…"
-	}
-	return name
-}
-
 func (m *Mailbox) UpdateLastUid(r ndb.Execer, accname string) error {
 	_, err := r.Exec(
 		"UPDATE mailbox SET lastseenuid = ? FROM account WHERE account.name = ? AND mailbox.name = ?",

@@ -18,18 +18,18 @@ type MailboxView struct {
 	bindings          config.Mapping
 	errorListener     func(e error)
 	accountName       string
-	mboxName          string
+	mbox              *models.Mailbox
 	*widgets.ListWidget
 }
 
-func NewMailboxView(accountName, mboxName string, bindings config.Mapping, onSelect func(accname, mailbox string, t *models.Thread)) *MailboxView {
+func NewMailboxView(accountName string, mbox *models.Mailbox, bindings config.Mapping, onSelect func(accname, mailbox string, t *models.Thread)) *MailboxView {
 	machine := sm.NewMailboxMachine()
 	l := widgets.NewList()
 	machine.OnTransition(func(s lib.StateType, ctx interface{}, ev *lib.Event) {
 		state := ctx.(*sm.MailboxMachineCtx)
 		switch ev.Transition {
 		case sm.TR_SELECT_THREAD:
-			onSelect(accountName, mboxName, state.Threads[state.Selected-1])
+			onSelect(accountName, mbox.Name, state.Threads[state.Selected-1])
 		case sm.TR_UP_THREAD, sm.TR_DOWN_THREAD:
 			l.SetSelected(state.Selected)
 		}
@@ -38,9 +38,18 @@ func NewMailboxView(accountName, mboxName string, bindings config.Mapping, onSel
 		machine:     machine,
 		accountName: accountName,
 		bindings:    bindings,
-		mboxName:    mboxName,
+		mbox:        mbox,
 		ListWidget:  l,
 	}
+}
+
+// Tab interface
+func (mv *MailboxView) TabTitle() string {
+	name := mv.mbox.Name
+	if mv.mbox.ShortName != "" {
+		name = mv.mbox.ShortName
+	}
+	return name
 }
 
 func (mv *MailboxView) SetThreads(threads []*models.Thread) {
@@ -68,7 +77,7 @@ func (mv *MailboxView) Refresh(lastuid uint32) {
 
 func (mv *MailboxView) FetchUpdateMessages(lastuid uint32) {
 	App.PostImapMessage(
-		&workers.FetchMessageUpdates{Mailbox: mv.mboxName, LastSeenUid: lastuid},
+		&workers.FetchMessageUpdates{Mailbox: mv.mbox.Name, LastSeenUid: lastuid},
 		mv.accountName,
 		func(response workers.Message) error {
 			switch r := response.(type) {
@@ -84,7 +93,7 @@ func (mv *MailboxView) FetchUpdateMessages(lastuid uint32) {
 
 func (mv *MailboxView) FetchNewMessages(lastuid uint32) {
 	App.PostImapMessage(
-		&workers.FetchNewMessages{Mailbox: mv.mboxName, LastSeenUid: lastuid},
+		&workers.FetchNewMessages{Mailbox: mv.mbox.Name, LastSeenUid: lastuid},
 		mv.accountName,
 		func(response workers.Message) error {
 			switch r := response.(type) {
@@ -103,7 +112,7 @@ func (mv *MailboxView) updateDb(mails []*models.Mail, lastuid uint32) {
 		return
 	}
 	App.PostDbMessage(
-		&workers.UpdateMessages{Mailbox: mv.mboxName, Mails: mails, LastSeenUid: lastuid},
+		&workers.UpdateMessages{Mailbox: mv.mbox.Name, Mails: mails, LastSeenUid: lastuid},
 		mv.accountName,
 		func(response workers.Message) error {
 			switch r := response.(type) {
@@ -122,7 +131,7 @@ func (mv *MailboxView) insertDb(mails []*models.Mail) {
 		return
 	}
 	App.PostDbMessage(
-		&workers.InsertNewMessages{Mailbox: mv.mboxName, Mails: mails},
+		&workers.InsertNewMessages{Mailbox: mv.mbox.Name, Mails: mails},
 		mv.accountName,
 		func(response workers.Message) error {
 			switch r := response.(type) {

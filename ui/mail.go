@@ -58,6 +58,12 @@ func NewMailView(bindings config.Mapping, partsBindings config.Mapping, filters 
 	return mv
 }
 
+// Tab interface
+func (mv *MailView) TabTitle() string {
+	s := mv.state()
+	return s.Mail.Subject
+}
+
 func (mv *MailView) SetPartsView(view *views.ViewPort) {
 	mv.partsView.SetViewPort(view, nil)
 }

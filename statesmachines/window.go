@@ -20,20 +20,20 @@ const (
 	TR_VALIDATE      lib.TransitionType = "VALIDATE"
 )
 
-type Tab struct {
-	Content widgets.Widget
-	Title   string
+type Tab interface {
+	widgets.Widget
+	TabTitle() string
 }
 
 type WindowMachineCtx struct {
-	Tabs        []*Tab
+	Tabs        []Tab
 	SelectedTab int
 }
 
 func NewWindowMachine() *lib.Machine {
 	return lib.NewMachine(
 		&WindowMachineCtx{
-			Tabs:        make([]*Tab, 0),
+			Tabs:        make([]Tab, 0),
 			SelectedTab: 0,
 		},
 		STATE_SHOW_TAB,
@@ -50,7 +50,7 @@ func NewWindowMachine() *lib.Machine {
 						Target: STATE_SHOW_TAB,
 						Action: func(c interface{}, ev *lib.Event) {
 							wmc := c.(*WindowMachineCtx)
-							newtab := ev.Payload.(*Tab)
+							newtab := ev.Payload.(Tab)
 							wmc.Tabs = append(wmc.Tabs, newtab)
 							wmc.SelectedTab = len(wmc.Tabs) - 1
 						},

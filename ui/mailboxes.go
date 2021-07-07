@@ -40,6 +40,12 @@ func NewMailboxesView(accountName string, bindings config.Mapping, onSelect func
 		TreeWidget:  t,
 	}
 }
+
+// Tab interface
+func (mv *MailboxesView) TabTitle() string {
+	return mv.accountName
+}
+
 func (mv *MailboxesView) Draw() {
 	mv.Clear()
 	if mv.machine.Current == sm.STATE_LOAD_MBOXES {

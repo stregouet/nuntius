@@ -7,12 +7,12 @@ import (
 
 	"github.com/gdamore/tcell/v2"
 	"github.com/gdamore/tcell/v2/views"
+	"github.com/mattn/go-runewidth"
 
 	"github.com/stregouet/nuntius/config"
 	"github.com/stregouet/nuntius/lib"
 	"github.com/stregouet/nuntius/models"
 	sm "github.com/stregouet/nuntius/statesmachines"
-	"github.com/stregouet/nuntius/widgets"
 	"github.com/stregouet/nuntius/workers"
 )
 
@@ -43,7 +43,7 @@ func NewWindow(cfg *config.Config) *Window {
 		case sm.TR_COMPOSE_MAIL:
 			// XXX it should be possible to choose account user want to send mail with
 			c := NewComposeView(cfg.Accounts[0], w.bindings[config.KEY_MODE_COMPOSE], w.Errorf)
-			w.addTab(c, "compose")
+			w.addTab(c)
 		case sm.TR_OPEN_TAB:
 			w.onOpenTab(ev)
 			w.AskRedraw()
@@ -83,14 +83,14 @@ func NewWindow(cfg *config.Config) *Window {
 				}
 				return nil
 			})
-		w.addTab(accwidget, c.Name)
+		w.addTab(accwidget)
 	}
 
 	return w
 }
 
-func (w *Window) addTab(content widgets.Widget, title string) {
-	w.machine.Send(&lib.Event{sm.TR_OPEN_TAB, &sm.Tab{content, title}})
+func (w *Window) addTab(content sm.Tab) {
+	w.machine.Send(&lib.Event{sm.TR_OPEN_TAB, content})
 }
 
 func (w *Window) state() *sm.WindowMachineCtx {
@@ -98,7 +98,7 @@ func (w *Window) state() *sm.WindowMachineCtx {
 }
 
 func (w *Window) onSelectMailbox(acc string, mailbox *models.Mailbox) {
-	mv := NewMailboxView(acc, mailbox.Name, w.bindings[config.KEY_MODE_MBOX], w.onSelectThread)
+	mv := NewMailboxView(acc, mailbox, w.bindings[config.KEY_MODE_MBOX], w.onSelectThread)
 	App.PostDbMessage(
 		&workers.FetchMailbox{Mailbox: mailbox.Name},
 		acc,
@@ -116,11 +116,11 @@ func (w *Window) onSelectMailbox(acc string, mailbox *models.Mailbox) {
 			}
 			return nil
 		})
-	w.addTab(mv, mailbox.TabTitle())
+	w.addTab(mv)
 }
 
 func (w *Window) onSelectThread(acc, mailbox string, thread *models.Thread) {
-	tv := NewThreadView(acc, mailbox, w.bindings[config.KEY_MODE_THREAD], w.onSelectMail)
+	tv := NewThreadView(acc, mailbox, thread.Subject, w.bindings[config.KEY_MODE_THREAD], w.onSelectMail)
 	App.PostDbMessage(
 		&workers.FetchThread{RootId: thread.RootId},
 		acc,
@@ -135,7 +135,7 @@ func (w *Window) onSelectThread(acc, mailbox string, thread *models.Thread) {
 			}
 			return nil
 		})
-	w.addTab(tv, thread.Subject)
+	w.addTab(tv)
 }
 
 func (w *Window) onSelectMail(acc, mailbox string, mail *models.Mail) {
@@ -158,17 +158,17 @@ func (w *Window) onSelectMail(acc, mailbox string, mail *models.Mail) {
 			}
 			return nil
 		})
-	w.addTab(mv, mail.Subject)
+	w.addTab(mv)
 }
 
 func (w *Window) onOpenTab(ev *lib.Event) {
-	tab := ev.Payload.(*sm.Tab)
-	tab.Content.AskingRedraw(func() {
+	tab := ev.Payload.(sm.Tab)
+	tab.AskingRedraw(func() {
 		w.AskRedraw()
 	})
 	if w.screen != nil {
 		w.screen.Clear()
-		tab.Content.SetViewPort(w.tabViewPort(), w.screen)
+		tab.SetViewPort(w.tabViewPort(), w.screen)
 	}
 }
 
@@ -215,7 +215,7 @@ func (w *Window) SetScreen(s tcell.Screen) {
 	w.ex.SetViewPort(w.exViewPort(), s)
 	state := w.state()
 	for _, t := range state.Tabs {
-		t.Content.SetViewPort(w.tabViewPort(), s)
+		t.SetViewPort(w.tabViewPort(), s)
 	}
 }
 func (w *Window) Draw() {
@@ -234,12 +234,17 @@ func (w *Window) Draw() {
 		if i == s.SelectedTab {
 			style = styleRev
 		}
-		for x, runec := range t.Title {
+
+		title := t.TabTitle()
+		if len(title) > 12 {
+			title = title[:12] + "…"
+		}
+		for x, runec := range []rune(title) {
 			w.screen.SetContent(offset+x, 0, runec, nil, style)
 		}
-		offset += len(t.Title) + 1
+		offset += runewidth.StringWidth(title) + 1
 	}
-	s.Tabs[s.SelectedTab].Content.Draw()
+	s.Tabs[s.SelectedTab].Draw()
 	w.ex.Draw()
 }
 
@@ -251,8 +256,8 @@ func (w *Window) HandleEvent(ev tcell.Event) bool {
 	} else {
 		s := w.state()
 		curTab := s.Tabs[s.SelectedTab]
-		if curTab.Content.IsActiveTerm() {
-			return curTab.Content.HandleEvent(ks)
+		if curTab.IsActiveTerm() {
+			return curTab.HandleEvent(ks)
 		}
 		// first check if this event refer toa global command
 		if cmd := w.bindings[config.KEY_MODE_GLOBAL].FindCommand(ks); cmd != "" {
@@ -269,7 +274,7 @@ func (w *Window) HandleEvent(ev tcell.Event) bool {
 		}
 		// either not a global command or this tcell event does not translate
 		// to an application machine event
-		return curTab.Content.HandleEvent(ks)
+		return curTab.HandleEvent(ks)
 	}
 	return false
 }
@@ -280,7 +285,7 @@ func (w *Window) HandleTransitions(ev *lib.Event) {
 		return
 	}
 	for _, t := range s.Tabs {
-		if t.Content.HandleTransitions(ev) {
+		if t.HandleTransitions(ev) {
 			return
 		}
 	}
