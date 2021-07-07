@@ -1,10 +1,12 @@
 package ui
 
 import (
+	"bytes"
 	"bufio"
 	"errors"
 	"io"
 	"os"
+	"os/exec"
 
 	"github.com/emersion/go-message"
 	_ "github.com/emersion/go-message/charset"
@@ -21,13 +23,14 @@ import (
 var ErrStopWalk = errors.New("stop walk")
 
 type MailView struct {
-	machine  *lib.Machine
-	bindings config.Mapping
+	machine   *lib.Machine
+	bindings  config.Mapping
 	partsView *MailPartsView
+	filters   config.Filters
 	*widgets.BaseWidget
 }
 
-func NewMailView(bindings config.Mapping, partsBindings config.Mapping, mail *models.Mail) *MailView {
+func NewMailView(bindings config.Mapping, partsBindings config.Mapping, filters config.Filters, mail *models.Mail) *MailView {
 	b := widgets.BaseWidget{}
 	machine := sm.NewMailMachine(mail)
 	machine.OnTransition(func(s lib.StateType, ctx interface{}, ev *lib.Event) {
@@ -46,6 +49,7 @@ func NewMailView(bindings config.Mapping, partsBindings config.Mapping, mail *mo
 		machine:    machine,
 		bindings:   bindings,
 		BaseWidget: &b,
+		filters:   filters,
 	}
 	mv.partsView = NewMailPartsView(partsBindings, mail.Parts, mv.onSelectPart)
 	mv.partsView.AskingRedraw(func() {
@@ -85,10 +89,35 @@ func (mv *MailView) drawHeader(header message.Header, offset int) int {
 	return line
 }
 
-func (mv *MailView) drawBody(body io.Reader, lineoffset int) {
+func (mv *MailView) drawBody(mailbody io.Reader, lineoffset int) {
 	style := tcell.StyleDefault
-	s := bufio.NewScanner(body)
 	line := lineoffset + 1
+	state := mv.state()
+	var body io.Reader
+	filter := state.SelectedPart.FindMatch(mv.filters)
+	if filter != "" {
+		cmd := exec.Command("sh", "-c", filter)
+		stdin, err := cmd.StdinPipe()
+		if err != nil {
+			App.logger.Errorf("error running cmd %v", err)
+			mv.Print(0, line, style,"error running cmd")
+			return
+		}
+		go func() {
+			defer stdin.Close()
+			io.Copy(stdin, mailbody)
+		}()
+		out, err := cmd.CombinedOutput()
+		if err != nil {
+			App.logger.Errorf("error running cmd %v %s", err, out)
+			mv.Print(0, line, style, "error running cmd")
+			return
+		}
+		body = bytes.NewBuffer(out)
+	} else {
+		body = mailbody
+	}
+	s := bufio.NewScanner(body)
 	for s.Scan() {
 		mv.Print(0, line, style, s.Text())
 		line++
@@ -140,8 +169,8 @@ func (mv *MailView) Draw() {
 			offset := mv.drawHeader(msg.Header, 0)
 			mv.drawBody(body, offset)
 		} else {
-			App.logger.Debug("cannot find text/plain body")
-			mv.Print(0, 0, style, state.Filepath)
+			App.logger.Debugf("cannot find selected part %v", state.SelectedPart)
+			mv.Print(0, 0, style, "no body for selected part (see mail at: " + state.Filepath + ")")
 		}
 	}
 }

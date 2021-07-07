@@ -22,15 +22,17 @@ type Window struct {
 	machine  *lib.Machine
 	ex       *Status
 	bindings config.Keybindings
+	filters  config.Filters
 
 	triggerRedraw atomic.Value // bool
 }
 
-func NewWindow(cfg []*config.Account, bindings config.Keybindings) *Window {
+func NewWindow(cfg *config.Config) *Window {
 	w := &Window{
 		machine:  sm.NewWindowMachine(),
-		bindings: bindings,
+		bindings: cfg.Keybindings,
 		ex:       NewStatus("ici c'est pour les commandes"),
+		filters:  cfg.Filters,
 	}
 	w.machine.OnTransition(func(s lib.StateType, ctx interface{}, ev *lib.Event) {
 		if ev.Transition == sm.TR_CLOSE_APP {
@@ -40,7 +42,7 @@ func NewWindow(cfg []*config.Account, bindings config.Keybindings) *Window {
 		switch ev.Transition {
 		case sm.TR_COMPOSE_MAIL:
 			// XXX it should be possible to choose account user want to send mail with
-			c := NewComposeView(cfg[0], w.bindings[config.KEY_MODE_COMPOSE], w.Errorf)
+			c := NewComposeView(cfg.Accounts[0], w.bindings[config.KEY_MODE_COMPOSE], w.Errorf)
 			w.machine.Send(&lib.Event{sm.TR_OPEN_TAB, &sm.Tab{c, "compose"}})
 		case sm.TR_OPEN_TAB:
 			w.onOpenTab(ev)
@@ -54,7 +56,7 @@ func NewWindow(cfg []*config.Account, bindings config.Keybindings) *Window {
 	})
 	w.ResetRedraw()
 
-	for _, c := range cfg {
+	for _, c := range cfg.Accounts {
 		App.PostImapMessage(
 			&workers.ConnectImap{},
 			c.Name,
@@ -133,7 +135,7 @@ func (w *Window) onSelectThread(acc, mailbox string, thread *models.Thread) {
 }
 
 func (w *Window) onSelectMail(acc, mailbox string, mail *models.Mail) {
-	mv := NewMailView(w.bindings[config.KEY_MODE_MAIL], w.bindings[config.KEY_MODE_PARTS], mail)
+	mv := NewMailView(w.bindings[config.KEY_MODE_MAIL], w.bindings[config.KEY_MODE_PARTS], w.filters, mail)
 	mv.OnSetViewPort(func(view *views.ViewPort, screen tcell.Screen) {
 		mv.SetPartsView(view)
 	})

@@ -56,7 +56,7 @@ func InitApp(l *lib.Logger, cfg *config.Config) error {
 			done:          make(chan struct{}),
 			screen:        screen,
 		}
-		w := NewWindow(cfg.Accounts, cfg.Keybindings)
+		w := NewWindow(cfg)
 		w.SetScreen(screen)
 		App.window = w
 		App.exit.Store(false)

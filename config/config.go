@@ -1,8 +1,10 @@
 package config
 
 import (
-	"errors"
 	"fmt"
+	"strings"
+
+	"github.com/pkg/errors"
 
 	"github.com/stregouet/nuntius/lib"
 )
@@ -31,6 +33,8 @@ type Account struct {
 	Smtp *SmtpCfg
 }
 
+type Filters map[string]string
+
 type Config struct {
 	Log struct {
 		Level  string
@@ -38,6 +42,7 @@ type Config struct {
 	}
 	Accounts    []*Account
 	Keybindings Keybindings
+	Filters     map[string]string
 }
 
 func (c *Config) uniqueAccountName() error {
@@ -48,6 +53,19 @@ func (c *Config) uniqueAccountName() error {
 			return fmt.Errorf("account `%s` is defined twice", a.Name)
 		}
 		names[a.Name] = struct{}{}
+	}
+	return nil
+}
+
+func (c *Config) valideFiltersMime() error {
+	for mime, _ := range c.Filters {
+		parts := strings.Split(mime, "/")
+		if len(parts) != 2 {
+			return fmt.Errorf("malformed mime `%s`", mime)
+		}
+		if parts[0] == "*" {
+			return fmt.Errorf("mime part should not contain `*`, only submime (%s)", mime)
+		}
 	}
 	return nil
 }
@@ -65,6 +83,9 @@ func (c *Config) Validate() error {
 	}
 	if err = c.Keybindings.Validate(); err != nil {
 		return err
+	}
+	if err = c.valideFiltersMime(); err != nil {
+		return errors.Wrap(err, "in filters section")
 	}
 	return nil
 }

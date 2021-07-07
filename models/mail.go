@@ -10,6 +10,7 @@ import (
 	"github.com/emersion/go-message/mail"
 	"github.com/gdamore/tcell/v2"
 
+	"github.com/stregouet/nuntius/config"
 	ndb "github.com/stregouet/nuntius/database"
 	"github.com/stregouet/nuntius/lib"
 	"github.com/stregouet/nuntius/widgets"
@@ -51,6 +52,21 @@ type BodyPart struct {
 	Path        BodyPath `json:"path"`
 	MIMEType    string   `json:"mimetype"`
 	MIMESubType string   `json:"mimesubtype"`
+}
+
+func (bp *BodyPart) FindMatch(filters config.Filters) string {
+	for mime, cmd := range filters {
+		mimeparts := strings.Split(mime, "/")
+		if len(mimeparts) != 2 {
+			continue
+		}
+		if mimeparts[0] == bp.MIMEType {
+			if mimeparts[1] == bp.MIMESubType || mimeparts[1] == "*" {
+				return cmd
+			}
+		}
+	}
+	return ""
 }
 
 func (bp *BodyPart) Depth() int {
