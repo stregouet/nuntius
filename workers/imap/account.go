@@ -7,6 +7,7 @@ import (
 	"os"
 	"path"
 	"strings"
+	"time"
 
 	"github.com/emersion/go-imap"
 	"github.com/emersion/go-imap/client"
@@ -349,9 +350,23 @@ func (a *Account) handleSendMail(msg *workers.SendMail) error {
 		return err
 	}
 	header := &mail.Header{message.Header{m.Header.Header}}
+	err = encodeHeaderFields(header)
+	if err != nil {
+		return errors.Wrap(err, "while encoding header fields")
+	}
+	if !header.Has("Message-Id") {
+		err := header.GenerateMessageID()
+		if err != nil {
+			return errors.Wrap(err, "generate message-id")
+		}
+	}
+	if !header.Has("Date") {
+		header.SetDate(time.Now())
+	}
+
 	from, err := header.AddressList("from")
 	if err != nil {
-		return errors.Wrap(err, "addresslist `from`")
+		return errors.Wrapf(err, "addresslist `from` (%v)", header.Get("from"))
 	}
 
 	if err := conn.Mail(from[0].Address, nil); err != nil {
@@ -378,15 +393,15 @@ func (a *Account) handleSendMail(msg *workers.SendMail) error {
 	if err != nil {
 		return errors.Wrap(err, "CreateSingleInlineWriter")
 	}
-	defer w.Close()
 	if _, err := io.Copy(w, m.Body); err != nil {
 		return errors.Wrap(err, "io.Copy")
 	}
 
-	err = conn.Quit()
+	err = w.Close()
 	if err != nil {
-		return err
+		return errors.Wrap(err, "will closing data writer")
 	}
 
+	conn.Quit()
 	return nil
 }
