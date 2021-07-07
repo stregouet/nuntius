@@ -80,6 +80,7 @@ func NewMailboxMachine() *lib.Machine {
 							state := c.(*MailboxMachineCtx)
 							threads := ev.Payload.([]*models.Thread)
 							state.Threads = threads
+							state.Selected = 1
 						},
 					},
 				},
