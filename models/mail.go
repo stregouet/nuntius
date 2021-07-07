@@ -176,13 +176,13 @@ func (m *Mail) UpdateFlags(r ndb.Execer, flags []string) error {
 	return err
 }
 
-func FetchMails(r ndb.Queryer, mailbox, accname string) ([]*Mail, error) {
+func FetchMails(r ndb.Queryer, mailbox, accname string, lastseenuid uint32) ([]*Mail, error) {
 	rows, err := r.Query(`SELECT m.id, m.uid FROM
         mail m
         JOIN mailbox mbox ON mbox.id = m.mailbox
         JOIN account a ON a.id = m.account AND a.id = mbox.account
       WHERE
-        a.name = ? AND mbox.name = ?`, accname, mailbox)
+        a.name = ? AND mbox.name = ? AND m.uid <= ?`, accname, mailbox, lastseenuid)
 	if err != nil {
 		return nil, err
 	}

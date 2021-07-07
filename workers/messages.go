@@ -156,8 +156,9 @@ type FetchMessageUpdatesRes struct {
 
 type UpdateMessages struct {
 	BaseMessage
-	Mailbox string
-	Mails   []*models.Mail
+	Mailbox     string
+	Mails       []*models.Mail
+	LastSeenUid uint32
 }
 
 type UpdateMessagesRes struct {

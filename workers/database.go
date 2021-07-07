@@ -265,7 +265,9 @@ func (d *Database) handleFetchMailboxesImap(db *sql.DB, msg *FetchMailboxesImapR
 }
 
 func (d *Database) handleUpdateMessages(db *sql.DB, msg *UpdateMessages) ([]*models.Thread, error) {
-	dbMails, err := models.FetchMails(db, msg.Mailbox, msg.GetAccName())
+	// fetch mails in current mailbox ignoring mails with one greater than LastSeenUid
+	// (such mails have been just inserted so no need to update them)
+	dbMails, err := models.FetchMails(db, msg.Mailbox, msg.GetAccName(), msg.LastSeenUid)
 	if err != nil {
 		return nil, errors.Wrap(err, "while fetching mails in mailbox")
 	}

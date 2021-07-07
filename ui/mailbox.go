@@ -76,7 +76,7 @@ func (mv *MailboxView) FetchUpdateMessages(lastuid uint32) {
 				App.logger.Errorf("fetch update messages %v", response)
 				mv.Error(r.Error)
 			case *workers.FetchMessageUpdatesRes:
-				mv.updateDb(r.Mails)
+				mv.updateDb(r.Mails, lastuid)
 			}
 			return nil
 		})
@@ -98,12 +98,12 @@ func (mv *MailboxView) FetchNewMessages(lastuid uint32) {
 		})
 }
 
-func (mv *MailboxView) updateDb(mails []*models.Mail) {
+func (mv *MailboxView) updateDb(mails []*models.Mail, lastuid uint32) {
 	if len(mails) == 0 {
 		return
 	}
 	App.PostDbMessage(
-		&workers.UpdateMessages{Mailbox: mv.mboxName, Mails: mails},
+		&workers.UpdateMessages{Mailbox: mv.mboxName, Mails: mails, LastSeenUid: lastuid},
 		mv.accountName,
 		func(response workers.Message) error {
 			switch r := response.(type) {
