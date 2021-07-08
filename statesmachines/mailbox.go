@@ -36,6 +36,16 @@ func NewMailboxMachine() *lib.Machine {
 		Threads:  make([]*models.Thread, 0),
 		Selected: 1,
 	}
+	setThread := &lib.Transition{
+		Target: STATE_SHOW_MBOX,
+		Action: func(c interface{}, ev *lib.Event) {
+			state := c.(*MailboxMachineCtx)
+			threads := ev.Payload.([]*models.Thread)
+			state.Threads = threads
+			state.Selected = 1
+		},
+	}
+
 	return lib.NewMachine(
 		c,
 		STATE_LOAD_MBOX,
@@ -70,19 +80,12 @@ func NewMailboxMachine() *lib.Machine {
 							state.Selected = next
 						},
 					},
+					TR_SET_THREADS: setThread,
 				},
 			},
 			STATE_LOAD_MBOX: &lib.State{
 				Transitions: lib.Transitions{
-					TR_SET_THREADS: &lib.Transition{
-						Target: STATE_SHOW_MBOX,
-						Action: func(c interface{}, ev *lib.Event) {
-							state := c.(*MailboxMachineCtx)
-							threads := ev.Payload.([]*models.Thread)
-							state.Threads = threads
-							state.Selected = 1
-						},
-					},
+					TR_SET_THREADS: setThread,
 				},
 			},
 		},
