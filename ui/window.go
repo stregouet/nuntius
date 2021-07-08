@@ -233,10 +233,7 @@ func (w *Window) Draw() {
 			style = styleRev
 		}
 
-		title := t.TabTitle()
-		if len(title) > 12 {
-			title = title[:12] + "…"
-		}
+		title := runewidth.Truncate(t.TabTitle(), 12, "…")
 		for x, runec := range []rune(title) {
 			w.screen.SetContent(offset+x, 0, runec, nil, style)
 		}
