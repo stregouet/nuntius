@@ -15,52 +15,52 @@ func TestParseKeyStroke(t *testing.T) {
 	}{
 		{
 			input:    "c-space",
-			expected: []*KeyStroke{&KeyStroke{tcell.KeyCtrlSpace, 0}},
+			expected: []*KeyStroke{&KeyStroke{tcell.KeyCtrlSpace, 0, nil}},
 		},
 		{
 			input: "space a",
 			expected: []*KeyStroke{
-				&KeyStroke{tcell.KeyRune, ' '},
-				&KeyStroke{tcell.KeyRune, 'a'},
+				&KeyStroke{tcell.KeyRune, ' ', nil},
+				&KeyStroke{tcell.KeyRune, 'a', nil},
 			},
 		},
 		{
 			input: "space ;",
 			expected: []*KeyStroke{
-				&KeyStroke{tcell.KeyRune, ' '},
-				&KeyStroke{tcell.KeyRune, ';'},
+				&KeyStroke{tcell.KeyRune, ' ', nil},
+				&KeyStroke{tcell.KeyRune, ';', nil},
 			},
 		},
 		{
 			input: ". '",
 			expected: []*KeyStroke{
-				&KeyStroke{tcell.KeyRune, '.'},
-				&KeyStroke{tcell.KeyRune, '\''},
+				&KeyStroke{tcell.KeyRune, '.', nil},
+				&KeyStroke{tcell.KeyRune, '\'', nil},
 			},
 		},
 		{
 			input: "c-a u ",
 			expected: []*KeyStroke{
-				&KeyStroke{tcell.KeyCtrlA, 0},
-				&KeyStroke{tcell.KeyRune, 'u'},
+				&KeyStroke{tcell.KeyCtrlA, 0, nil},
+				&KeyStroke{tcell.KeyRune, 'u', nil},
 			},
 		},
 		{
 			input: "s-a",
 			expected: []*KeyStroke{
-				&KeyStroke{tcell.KeyRune, 'A'},
+				&KeyStroke{tcell.KeyRune, 'A', nil},
 			},
 		},
 		{
 			input: "«",
 			expected: []*KeyStroke{
-				&KeyStroke{tcell.KeyRune, '«'},
+				&KeyStroke{tcell.KeyRune, '«', nil},
 			},
 		},
 		{
 			input: "s-é",
 			expected: []*KeyStroke{
-				&KeyStroke{tcell.KeyRune, 'É'},
+				&KeyStroke{tcell.KeyRune, 'É', nil},
 			},
 		},
 	}
