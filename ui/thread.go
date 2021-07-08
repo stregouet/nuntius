@@ -37,7 +37,7 @@ func NewThreadView(accname, mailbox, subject string, bindings config.Mapping, on
 
 // Tab interface
 func (tv *ThreadView) TabTitle() string {
-	return tv.subject
+	return "\uf086 " + tv.thread.Subject
 }
 
 func (tv *ThreadView) SetMails(mails []*models.Mail) {

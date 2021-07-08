@@ -62,11 +62,14 @@ func NewMailView(bindings config.Mapping, partsBindings config.Mapping, filters 
 
 // Tab interface
 func (mv *MailView) TabTitle() string {
+	var sub string
 	if mv.machine.Current == sm.STATE_LOAD_MAIL {
-		return "load mail…"
+		sub = "load mail…"
+	} else {
+		s := mv.state()
+		sub = s.Mail.Subject
 	}
-	s := mv.state()
-	return s.Mail.Subject
+	return "\uf0e0 " + sub
 }
 
 func (mv *MailView) SetMail(m *models.Mail, mailbox, acc string) {

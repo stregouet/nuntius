@@ -49,7 +49,7 @@ func (mv *MailboxView) TabTitle() string {
 	if mv.mbox.ShortName != "" {
 		name = mv.mbox.ShortName
 	}
-	return name
+	return "\uf674 " + name
 }
 
 func (mv *MailboxView) SetThreads(threads []*models.Thread) {
