@@ -362,7 +362,12 @@ WITH RECURSIVE tmp(id, messageid, subject, date, uid, parts, flags, depth) as (
 		if err != nil {
 			return nil, err
 		}
-		m := &Mail{Id: id, Subject: subject, depth: depth, Date: date, Uid: uid, Parts: parts, Flags: strings.Split(flags, ",")}
+		m := &Mail{Id: id, Subject: subject, depth: depth, Date: date, Uid: uid, Parts: parts}
+		if flags != "" {
+			// split only if flags is not empty
+			// if flags is empty we want an empty []string
+			m.Flags = strings.Split(flags, ",")
+		}
 		roots = append(roots, m)
 	}
 	return roots, nil
