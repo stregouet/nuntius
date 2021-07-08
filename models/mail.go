@@ -176,7 +176,7 @@ func (m *Mail) UpdateFlags(r ndb.Execer, flags []string) error {
 }
 
 func FetchMails(r ndb.Queryer, mailbox, accname string, lastseenuid uint32) ([]*Mail, error) {
-	rows, err := r.Query(`SELECT m.id, m.uid FROM
+	rows, err := r.Query(`SELECT m.id, m.uid, m.flags FROM
         mail m
         JOIN mailbox mbox ON mbox.id = m.mailbox
         JOIN account a ON a.id = m.account AND a.id = mbox.account
@@ -189,11 +189,12 @@ func FetchMails(r ndb.Queryer, mailbox, accname string, lastseenuid uint32) ([]*
 	for rows.Next() {
 		var id int
 		var uid int
-		err = rows.Scan(&id, &uid)
+		var flags string
+		err = rows.Scan(&id, &uid, &flags)
 		if err != nil {
 			return nil, err
 		}
-		result = append(result, &Mail{Id: id, Uid: uint32(uid)})
+		result = append(result, &Mail{Id: id, Uid: uint32(uid), Flags: strings.Split(flags, ",")})
 	}
 	return result, nil
 }
