@@ -133,6 +133,16 @@ func (m *Mail) IsUnread() bool {
 	return true
 }
 
+func (m *Mail) MarkAsRead() {
+	// check if Seen flag is already set
+	for _, f := range m.Flags {
+		if f == imap.SeenFlag {
+			return
+		}
+	}
+	m.Flags = append(m.Flags, imap.SeenFlag)
+}
+
 func (m *Mail) Depth() int {
 	return m.depth
 }
@@ -163,6 +173,11 @@ func (m *Mail) FindFirstNonMultipart() *BodyPart {
 
 func (m *Mail) Delete(r ndb.Execer) error {
 	_, err := r.Exec("DELETE FROM mail WHERE id = ?", m.Id)
+	return err
+}
+
+func (m *Mail) SaveFlags(r ndb.Execer) error {
+	_, err := r.Exec("UPDATE mail SET flags = ? WHERE id = ?", strings.Join(m.Flags, ","), m.Id)
 	return err
 }
 

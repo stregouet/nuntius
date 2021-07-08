@@ -11,18 +11,18 @@ import (
 type ThreadView struct {
 	machine  *lib.Machine
 	bindings config.Mapping
-	subject  string
+	thread   *models.Thread
 	*widgets.TreeWidget
 }
 
-func NewThreadView(accname, mailbox, subject string, bindings config.Mapping, onSelect func(accname, mailbox string, m *models.Mail)) *ThreadView {
+func NewThreadView(accname, mailbox string, thread *models.Thread, bindings config.Mapping, onSelect func(accname, mailbox string, m *models.Mail, t *models.Thread)) *ThreadView {
 	t := widgets.NewTree()
 	machine := sm.NewThreadMachine()
 	machine.OnTransition(func(s lib.StateType, ctx interface{}, ev *lib.Event) {
 		state := ctx.(*sm.ThreadMachineCtx)
 		switch ev.Transition {
 		case sm.TR_SELECT_MAIL:
-			onSelect(accname, mailbox, state.Mails[state.Selected-1])
+			onSelect(accname, mailbox, state.Mails[state.Selected-1], thread)
 		case sm.TR_UP_MAIL, sm.TR_DOWN_MAIL:
 			t.SetSelected(state.Selected)
 		}
@@ -30,7 +30,7 @@ func NewThreadView(accname, mailbox, subject string, bindings config.Mapping, on
 	return &ThreadView{
 		machine:    machine,
 		bindings:   bindings,
-		subject:    subject,
+		thread:     thread,
 		TreeWidget: t,
 	}
 }

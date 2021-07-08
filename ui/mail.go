@@ -27,6 +27,7 @@ type MailView struct {
 	bindings  config.Mapping
 	partsView *MailPartsView
 	filters   config.Filters
+	onReadCb  func()
 	*widgets.BaseWidget
 }
 
@@ -84,12 +85,44 @@ func (mv *MailView) SetMail(m *models.Mail, mailbox, acc string) {
 				mv.Messagef("error fetching mail content %v", r.Error)
 			case *workers.FetchFullMailRes:
 				mv.SetFilepath(r.Filepath)
+				if r.FromImap {
+					mv.MarkAsRead()
+					mv.SaveIndDb(mailbox, acc)
+				}
 				App.logger.Debugf("full mail received, `%v`", r.Filepath)
 			default:
 				App.logger.Error("unknown response type")
 			}
 			return nil
 		})
+}
+
+func (mv *MailView) SaveIndDb(mailbox, acc string) {
+	state := mv.state()
+	// copy flags before sending them to another goroutine
+	flags := make([]string, len(state.Mail.Flags))
+	copy(flags, state.Mail.Flags)
+	App.PostDbMessage(
+		&workers.SaveMailFlags{MailId: state.Mail.Id, Flags: flags},
+		acc,
+		func(response workers.Message) error {
+			if r, ok := response.(*workers.Error); ok {
+				mv.Messagef("error saving flags to db: %v", r.Error)
+			}
+			return nil
+		})
+}
+
+func (mv *MailView) MarkAsRead() {
+	state := mv.state()
+	state.Mail.MarkAsRead()
+	if mv.onReadCb != nil {
+		mv.onReadCb()
+	}
+}
+
+func (mv *MailView) OnRead(f func()) {
+	mv.onReadCb = f
 }
 
 func (mv *MailView) onSelectPart(part *models.BodyPart) {

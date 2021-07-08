@@ -122,9 +122,9 @@ func (w *Window) onSelectMailbox(acc string, mailbox *models.Mailbox) {
 func (w *Window) onSelectThread(acc, mailbox string, thread *models.Thread) {
 	var tab sm.Tab
 	if thread.Count == 1 {
-		tab = w.buildMailView()
+		tab = w.buildMailView(thread)
 	} else {
-		tab = NewThreadView(acc, mailbox, thread.Subject, w.bindings[config.KEY_MODE_THREAD], w.onSelectMail)
+		tab = NewThreadView(acc, mailbox, thread, w.bindings[config.KEY_MODE_THREAD], w.onSelectMail)
 	}
 	App.PostDbMessage(
 		&workers.FetchThread{RootId: thread.RootId},
@@ -148,12 +148,17 @@ func (w *Window) onSelectThread(acc, mailbox string, thread *models.Thread) {
 	w.addTab(tab)
 }
 
-func (w *Window) buildMailView() *MailView {
-	return NewMailView(w.bindings[config.KEY_MODE_MAIL], w.bindings[config.KEY_MODE_PARTS], w.filters)
+func (w *Window) buildMailView(thread *models.Thread) *MailView {
+	mv := NewMailView(w.bindings[config.KEY_MODE_MAIL], w.bindings[config.KEY_MODE_PARTS], w.filters)
+	mv.OnRead(func() {
+		App.logger.Debugf("one mail marked as read %d", thread.SeenCount)
+		thread.MarkOneAsRead()
+	})
+	return mv
 }
 
-func (w *Window) onSelectMail(acc, mailbox string, mail *models.Mail) {
-	mv := w.buildMailView()
+func (w *Window) onSelectMail(acc, mailbox string, mail *models.Mail, thread *models.Thread) {
+	mv := w.buildMailView(thread)
 	mv.SetMail(mail, mailbox, acc)
 	w.addTab(mv)
 }

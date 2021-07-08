@@ -21,11 +21,11 @@ type Thread struct {
 	Subject   string
 	Date      time.Time
 	Count     int
-	HasUnread bool
+	SeenCount int
 }
 
 func (t *Thread) StyledContent() []*widgets.ContentWithStyle {
-	s := tcell.StyleDefault.Bold(t.HasUnread)
+	s := tcell.StyleDefault.Bold(t.HasUnread())
 	return []*widgets.ContentWithStyle{
 		{
 			fmt.Sprintf("%s (%d) %s",
@@ -34,6 +34,17 @@ func (t *Thread) StyledContent() []*widgets.ContentWithStyle {
 				t.Subject),
 			s,
 		},
+	}
+}
+
+func (t *Thread) HasUnread() bool {
+	return t.SeenCount < t.Count
+}
+
+func (t *Thread) MarkOneAsRead() {
+	t.SeenCount++
+	if t.SeenCount > t.Count {
+		t.SeenCount = t.Count
 	}
 }
 
@@ -241,7 +252,7 @@ FROM (
 	  p.id,
       p.threadid,
       subject,
-	  MIN(flags like '%Seen%') OVER w AS seen,
+	  SUM(flags like '%Seen%') OVER w AS seen,
       MAX(p.date) OVER w AS mostrecent,
       COUNT(1) OVER w as count,
       ROW_NUMBER() OVER (PARTITION BY threadid ORDER BY p.date ASC) AS rn
@@ -271,12 +282,12 @@ ORDER BY mostrecent DESC
 		var subject string
 		var date DateFromStr
 		var count int
-		var seen bool
+		var seen int
 		err = rows.Scan(&rootid, &threadid, &subject, &date, &seen, &count)
 		if err != nil {
 			return nil, err
 		}
-		t := &Thread{RootId: rootid, Subject: subject, Date: date.T, Count: count, HasUnread: !seen}
+		t := &Thread{RootId: rootid, Subject: subject, Date: date.T, Count: count, SeenCount: seen}
 		if threadid.Valid {
 			t.Id = int(threadid.Int32)
 		}

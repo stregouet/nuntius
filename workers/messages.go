@@ -84,6 +84,13 @@ type FetchFullMail struct {
 type FetchFullMailRes struct {
 	BaseMessage
 	Filepath string
+	FromImap bool
+}
+
+type SaveMailFlags struct {
+	BaseMessage
+	MailId int
+	Flags  []string
 }
 
 type FetchNewMessages struct {

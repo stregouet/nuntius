@@ -153,7 +153,7 @@ func (a *Account) handleFetchFullMail(msg *workers.FetchFullMail) (workers.Messa
 	if err != nil {
 		return nil, err
 	}
-	section := &imap.BodySectionName{Peek: true} // XXX remove Peek
+	section := &imap.BodySectionName{}
 	items := []imap.FetchItem{
 		imap.FetchEnvelope,
 		imap.FetchFlags,
@@ -162,6 +162,7 @@ func (a *Account) handleFetchFullMail(msg *workers.FetchFullMail) (workers.Messa
 	}
 	r := &workers.FetchFullMailRes{
 		Filepath: fmt.Sprintf("/tmp/nuntius/%s/%d.mail", msg.Mailbox, msg.Uid),
+		FromImap: false,
 	}
 	if _, err := os.Stat(r.Filepath); os.IsNotExist(err) {
 		if _, err := os.Stat(path.Dir(r.Filepath)); os.IsNotExist(err) {
@@ -191,6 +192,7 @@ func (a *Account) handleFetchFullMail(msg *workers.FetchFullMail) (workers.Messa
 	if err != nil {
 		return nil, err
 	}
+	r.FromImap = true
 	return r, nil
 }
 

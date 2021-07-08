@@ -108,6 +108,13 @@ func (d *Database) handleMessage(db *sql.DB, msg Message) {
 		// tmp := m.SetId(msg.GetId())
 		// d.responses <- m.SetId(msg.GetId())
 		d.postResponse(m, msg.GetId())
+	case *SaveMailFlags:
+		r, err := d.handleSaveMailFlags(db, msg)
+		if err != nil {
+			r = &Error{Error: errors.New("cannot save flags")}
+			d.logger.Errorf("whire updating flags %v (mailid: %d)", err, msg.MailId)
+		}
+		d.postResponse(r, msg.GetId())
 	case *InsertNewMessages:
 		result, err := d.handleInsertNewMessages(db, msg)
 		var m Message
@@ -306,4 +313,13 @@ func (d *Database) handleUpdateMessages(db *sql.DB, msg *UpdateMessages) ([]*mod
 		return nil, errors.Wrap(err, "while commiting tx")
 	}
 	return models.AllThreads(db, msg.Mailbox, msg.GetAccName())
+}
+
+func (d *Database) handleSaveMailFlags(db *sql.DB, msg *SaveMailFlags) (Message, error) {
+	m := &models.Mail{Id: msg.MailId, Flags: msg.Flags}
+	err := m.SaveFlags(db)
+	if err != nil {
+		return nil, err
+	}
+	return &Done{}, nil
 }
