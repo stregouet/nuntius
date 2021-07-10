@@ -350,6 +350,7 @@ WITH RECURSIVE tmp(id, messageid, subject, date, uid, parts, flags, depth) as (
     FROM
       tmp prior
       INNER JOIN mail this ON this.inreplyto = prior.messageid
+	ORDER BY this.date
 ) select id, subject, date, uid, parts, flags, depth from tmp`, rootMailId)
 	if err != nil {
 		return nil, err
