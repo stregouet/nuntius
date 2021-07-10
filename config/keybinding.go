@@ -60,4 +60,5 @@ func (k Keybindings) Defaults() {
 			k[mode] = make(Mapping)
 		}
 	}
+	k[KEY_MODE_GLOBAL][":"] = "start-writing"
 }

@@ -31,15 +31,17 @@ func NewWindow(cfg *config.Config) *Window {
 	w := &Window{
 		machine:  sm.NewWindowMachine(),
 		bindings: cfg.Keybindings,
-		ex:       NewStatus("ici c'est pour les commandes"),
 		filters:  cfg.Filters,
 	}
+	w.ex = NewStatus("ici c'est pour les commandes", w.OnExCmd)
 	w.machine.OnTransition(func(s lib.StateType, ctx interface{}, ev *lib.Event) {
 		if ev.Transition == sm.TR_CLOSE_APP {
 			App.Stop()
 			return
 		}
 		switch ev.Transition {
+		case sm.TR_START_WRITING:
+			w.ex.machine.Send(&lib.Event{sm.TR_STATUS_START_WRITING, nil})
 		case sm.TR_COMPOSE_MAIL:
 			// XXX it should be possible to choose account user want to send mail with
 			c := NewComposeView(cfg.Accounts[0], w.bindings[config.KEY_MODE_COMPOSE])
@@ -47,7 +49,7 @@ func NewWindow(cfg *config.Config) *Window {
 		case sm.TR_OPEN_TAB:
 			w.onOpenTab(ev)
 			w.AskRedraw()
-		case sm.TR_NEXT_TAB, sm.TR_PREV_TAB, sm.TR_CLOSE_TAB:
+		case sm.TR_NEXT_TAB, sm.TR_PREV_TAB, sm.TR_CLOSE_TAB, sm.TR_END_CMD:
 			w.AskRedraw()
 		}
 	})
@@ -87,6 +89,22 @@ func NewWindow(cfg *config.Config) *Window {
 	}
 
 	return w
+}
+
+func (w *Window) OnExCmd(cmd string) {
+	w.machine.Send(&lib.Event{sm.TR_END_CMD, nil})
+	if cmd != "" {
+		command, err := lib.ParseCmd(cmd)
+		if err != nil {
+			w.Errorf("cannot apply cmd %v", err)
+			return
+		}
+		ev := &lib.Event{command.ToTrType(), command.Args}
+		res := w.HandleTransitions(ev)
+		if !res {
+			w.ShowMessagef("no available command for `%s`", command.Name)
+		}
+	}
 }
 
 func (w *Window) addTab(content sm.Tab) {
@@ -279,15 +297,15 @@ func (w *Window) HandleEvent(ev tcell.Event) bool {
 	return false
 }
 
-func (w *Window) HandleTransitions(ev *lib.Event) {
+func (w *Window) HandleTransitions(ev *lib.Event) bool {
 	s := w.state()
 	if w.ex.HandleTransitions(ev) {
-		return
+		return true
 	}
 	for _, t := range s.Tabs {
 		if t.HandleTransitions(ev) {
-			return
+			return true
 		}
 	}
-
+	return false
 }

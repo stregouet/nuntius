@@ -169,3 +169,7 @@ func (mv *MailboxView) HandleEvent(ks []*lib.KeyStroke) bool {
 	}
 	return false
 }
+
+func (mv *MailboxView) HandleTransitions(ev *lib.Event) bool {
+	return mv.machine.Send(ev)
+}

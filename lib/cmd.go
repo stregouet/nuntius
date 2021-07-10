@@ -93,3 +93,8 @@ func ParseCmd(userinput string) (*Command, error) {
 
 	return res, nil
 }
+
+func (c *Command) ToTrType() TransitionType {
+	t := strings.ToUpper(strings.ReplaceAll(string(c.Name), "-", "_"))
+	return TransitionType(t)
+}

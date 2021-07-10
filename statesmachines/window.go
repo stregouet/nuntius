@@ -16,8 +16,7 @@ const (
 
 	STATE_WRITE_CMD  lib.StateType      = "WRITE_CMD"
 	TR_START_WRITING lib.TransitionType = "START_WRITING"
-	TR_CANCEL        lib.TransitionType = "CANCEL"
-	TR_VALIDATE      lib.TransitionType = "VALIDATE"
+	TR_END_CMD       lib.TransitionType = "END_CMD"
 )
 
 type Tab interface {
@@ -99,8 +98,7 @@ func NewWindowMachine() *lib.Machine {
 			},
 			STATE_WRITE_CMD: &lib.State{
 				Transitions: lib.Transitions{
-					TR_CANCEL:   &lib.Transition{Target: STATE_SHOW_TAB},
-					TR_VALIDATE: &lib.Transition{Target: STATE_SHOW_TAB},
+					TR_END_CMD: &lib.Transition{Target: STATE_SHOW_TAB},
 				},
 			},
 		},
